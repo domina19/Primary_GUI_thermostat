@@ -30,6 +30,8 @@
 #include "supla_web_server.h"
 #include "supla_board_settings.h"
 
+#include "thermostat.h"
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -47,7 +49,6 @@ int nr_dht = 0;
 int dht_channel[MAX_DHT];
 _ds18b20_t ds18b20[MAX_DS18B20];
 _relay_button_channel relay_button_channel[MAX_RELAY];
-
 
 double temp_html;
 double humidity_html;
@@ -167,6 +168,7 @@ void setup() {
 
   supla_ds18b20_start();
   supla_dht_start();
+  thermostat_start();
 
   SuplaDevice.begin(GUID,              // Global Unique Identifier
                     mac,               // Ethernet MAC address
@@ -241,6 +243,14 @@ void supla_arduino_eth_setup(uint8_t mac[6], IPAddress *ip) {
 int supla_DigitalRead(int channelNumber, uint8_t pin) {
 
   int result = digitalRead(pin);
+
+  if (pin == VIRTUAL_PIN_THERMOSTAT) {
+    if (thermostat.last_state) return 1; else return 0;
+  }
+  if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
+    if (digitalRead(PIN_THERMOSTAT)) return 1; else return 0;
+  }
+
   /*Serial.print("Read(");
     Serial.print(pin);
     Serial.print("): ");
@@ -249,7 +259,19 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
 }
 
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
+  if ( pin == VIRTUAL_PIN_THERMOSTAT ) {
+    if ( val != thermostat.last_state ) {
+      if (val == 0 ) thermostatOFF();
+      
+      thermostat.last_state = val;
+    }
+    return;
+  }
 
+  if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
+    digitalRead(PIN_THERMOSTAT);
+    return;
+  }
   /*Serial.print("Write(");
     Serial.print(pin);
     Serial.print(",");
@@ -351,9 +373,12 @@ void createWebServer() {
         }
       }
     }
-    save_thermostat_temp(httpServer.arg("thermostat_temp").toFloat());
-    save_thermostat_hyst(httpServer.arg("thermostat_hist").toFloat());
-    save_thermostat_channel(httpServer.arg("thermostat_channel").toInt());
+    thermostat.temp = httpServer.arg("thermostat_temp").toFloat();
+    thermostat.hyst = httpServer.arg("thermostat_hist").toFloat();
+    thermostat.channel = httpServer.arg("thermostat_channel").toInt();
+    save_thermostat_temp(thermostat.temp);
+    save_thermostat_hyst(thermostat.hyst);
+    save_thermostat_channel(thermostat.channel);
 
     httpServer.send(200, "text/html", supla_webpage_start(1));
   });
@@ -505,7 +530,7 @@ void get_temperature_and_humidity(int channelNumber, double * temp, double * hum
 
 double get_temperature(int channelNumber, double last_val) {
   double t = -275;
-
+  //Serial.println("sdsadsa");
   int i = channelNumber - channelNumberDS18B20;
   if ( sensor[i].getDeviceCount() > 0 ) {
     if ( ds18b20[i].address != "FFFFFFFFFFFFFFFF" || ds18b20[i].type == 0) {
@@ -515,6 +540,7 @@ double get_temperature(int channelNumber, double last_val) {
 
       if (ds18b20[i].TemperatureRequestInProgress == false) {
         sensor[i].requestTemperaturesByAddress(ds18b20[i].deviceAddress);
+
         ds18b20[i].TemperatureRequestInProgress = true;
       }
 
@@ -527,6 +553,8 @@ double get_temperature(int channelNumber, double last_val) {
     } else {
       t = -275;
     }
+    //THERMOSTAT
+    CheckTermostat(i, t);
   }
   return t;
 }
@@ -733,38 +761,4 @@ void SetupDS18B20Multi() {
     Serial.print("Temp C: ");
     Serial.println(tempC);
   }
-}
-
-// Tt i wartość histerezy
-unsigned char td, tg;
-double temptermo, histermo;
-
-unsigned char CheckTermostat(double temp) {
-    Pokaz_zawartosc_eeprom();
-  Serial.println(read_thermostat_temp());
-  Serial.println(read_thermostat_hyst());
-  Serial.println(read_thermostat_channel());
-  double pom;
-  pom = temptermo - histermo;
-  if (td)
-  {
-    if (temp > temptermo)
-    { td = 0;
-      tg = 1; //osiągnięto górny próg temperatury
-      Serial.println("Wyłącz przekaźnik - osiognięto gorny prób temperatury");
-      return (0);
-    }
-
-  }
-  if (tg)
-  {
-    if (temp < pom)
-    { td = 1; //osiągnięto dolny próg temperatury
-      tg = 0;
-      Serial.println("WŁĄCZ przekaźnik - osopgnięto dolny próg temperatury");
-      return (1);
-    }
-  }
-
-  return (2); //powrot z bledem
 }

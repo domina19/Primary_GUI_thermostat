@@ -14,6 +14,7 @@
 #include "supla_web_server.h"
 #include "supla_board_settings.h"
 
+#include "thermostat.h"
 
 const char* gui_color = GUI_GREEN;
 const char* gui_box_shadow = "box-shadow:0 1px 30px rgba(0,0,0,.9)";
@@ -329,11 +330,10 @@ String supla_webpage_start(int save) {
     content += "</div>";
   }
   content += "<div class='w'>";
-  content += "<h3>Temperatura</h3>";
-  content += "<i><label>Temperatura</label><input name='thermostat_temp' type='number' placeholder='20.0' step='0.1' min='-55' max='125' value='" + String(read_thermostat_temp()) +"'></i>";
-  content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(read_thermostat_hyst()) +"'></i>";
-  content += "<i><label>Kanał temp.</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(read_thermostat_channel()
-  ) +"'></i>";
+  content += "<h3>Ustawienia termostatu</h3>";
+  content += "<i><label>Temperatura wył.</label><input name='thermostat_temp' type='number' placeholder='20.0' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) +"'></i>";
+  content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(thermostat.hyst) +"'></i>";
+  content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channel) +"'></i>";
   content += "</div>";
 
 

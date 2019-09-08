@@ -10,7 +10,7 @@
 
 #define  DEFAULT_LOGIN         "admin"
 #define  DEFAULT_PASSWORD      "password"
-#define  DEFAULT_HOSTNAME      "Primary v2"
+#define  DEFAULT_HOSTNAME      "Primary termostat"
 
 #define  UPDATE_PATH           "/firmware"
 
@@ -19,7 +19,7 @@
 #define  MAX_DHT               8
 
 //DS18B20 ************************************************************************************************
-#define  MAX_DS18B20            6 //maksymalnie 8
+#define  MAX_DS18B20            3 //maksymalnie 8
 #define  TEMPERATURE_PRECISION  10  // rozdzielczość czujnika DS 9 -12 bit
 //LED CONFIG *********************************************************************************************
 #define LED_CONFIG_PIN         2

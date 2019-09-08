@@ -17,6 +17,7 @@
 #include "supla_eeprom.h"
 #include "supla_web_server.h"
 #include "supla_board_settings.h"
+#include "thermostat.h"
 
 extern "C" {
 #include "user_interface.h"
@@ -26,17 +27,17 @@ extern "C" {
 
 void supla_board_configuration(void) {
 
-  add_Relay_Button(13, 0, CHOICE_TYPE);
+  //add_Relay_Button(13, 0, CHOICE_TYPE);
   //  add_Relay_Button_Invert(13, 12, CHOICE_TYPE);
 
-  add_Relay(15);
+  add_Relay(VIRTUAL_PIN_THERMOSTAT);
   //  add_Relay_Invert(5);
 
   //  add_Roller_Shutter_Relays(5, 13) ;
   //  add_Roller_Shutter_Buttons(0, 14, 12);
   //  SuplaDevice.setRollerShutterFuncImpl(&supla_rs_SavePosition, &supla_rs_LoadPosition, &supla_rs_SaveSettings, &supla_rs_LoadSettings);
 
-  //  add_Sensor(4);
+    add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);
   //  add_Sensor(16);
 
   add_DS18B20Multi_Thermometer(5);
