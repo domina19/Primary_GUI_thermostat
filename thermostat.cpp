@@ -2,6 +2,9 @@
 #include "supla_eeprom.h"
 #include "thermostat.h"
 
+#define SUPLADEVICE_CPP
+#include <SuplaDevice.h>
+
 _thermostat thermostat;
 
 extern "C" {
@@ -10,12 +13,12 @@ extern "C" {
 
 void thermostat_start() {
   pinMode(PIN_THERMOSTAT, OUTPUT);
-  digitalWrite(PIN_THERMOSTAT, THERMOSTAT_OFF);
-
+  //digitalWrite(PIN_THERMOSTAT, THERMOSTAT_OFF);
+  thermostatOFF();
   thermostat.temp = read_thermostat_temp();
   thermostat.hyst = read_thermostat_hyst();
   thermostat.channel = read_thermostat_channel();
-  thermostatOFF();
+  
   thermostat.error = 0;
 }
 
@@ -58,10 +61,12 @@ bool thermostatOFF() {
   thermostat.lower_temp = 0;
   thermostat.upper_temp = 1; //osiągnięto górny próg temperatury
   digitalWrite(PIN_THERMOSTAT, THERMOSTAT_OFF);
+  SuplaDevice.channelValueChanged(1, 1);
 };
 
 bool thermostatON() {
   thermostat.lower_temp = 1; //osiągnięto dolny próg temperatury
   thermostat.upper_temp = 0;
   digitalWrite(PIN_THERMOSTAT, THERMOSTAT_ON);
+  SuplaDevice.channelValueChanged(1, 0);
 };

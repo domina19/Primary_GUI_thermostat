@@ -4,8 +4,8 @@
 #define VIRTUAL_PIN_THERMOSTAT 99
 #define VIRTUAL_PIN_SENSOR_THERMOSTAT 98
 #define PIN_THERMOSTAT 4
-#define THERMOSTAT_ON LOW
-#define THERMOSTAT_OFF HIGH
+#define THERMOSTAT_ON HIGH
+#define THERMOSTAT_OFF LOW
 
 typedef struct {
   double temp;

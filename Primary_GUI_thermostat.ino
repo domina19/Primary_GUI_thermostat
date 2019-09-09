@@ -245,10 +245,10 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
   int result = digitalRead(pin);
 
   if (pin == VIRTUAL_PIN_THERMOSTAT) {
-    if (thermostat.last_state) return 1; else return 0;
+    if (thermostat.last_state) return 0; else return 1;
   }
   if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
-    if (digitalRead(PIN_THERMOSTAT)) return 1; else return 0;
+    if (digitalRead(PIN_THERMOSTAT)) return 0; else return 1;
   }
 
   /*Serial.print("Read(");
@@ -262,14 +262,10 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   if ( pin == VIRTUAL_PIN_THERMOSTAT ) {
     if ( val != thermostat.last_state ) {
       if (val == 0 ) thermostatOFF();
-      
-      thermostat.last_state = val;
-    }
-    return;
-  }
 
-  if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
-    digitalRead(PIN_THERMOSTAT);
+      thermostat.last_state = val;
+      SuplaDevice.channelValueChanged(channelNumber, val);
+    }
     return;
   }
   /*Serial.print("Write(");
@@ -525,6 +521,8 @@ void get_temperature_and_humidity(int channelNumber, double * temp, double * hum
     *humidity = -1;
     //    error++;
   }
+  //THERMOSTAT
+  CheckTermostat(0, *temp);
   //  Serial.print("error - "); Serial.println(error);
 }
 
@@ -544,7 +542,7 @@ double get_temperature(int channelNumber, double last_val) {
         ds18b20[i].TemperatureRequestInProgress = true;
       }
 
-      if ( millis() - ds18b20[i].lastTemperatureRequest > 1000) {
+      if ( millis() - ds18b20[i].lastTemperatureRequest > 750) {
         t = sensor[i].getTempC(ds18b20[i].deviceAddress);
         if (t == -127) t = -275;
         ds18b20[i].lastTemperatureRequest = millis();
