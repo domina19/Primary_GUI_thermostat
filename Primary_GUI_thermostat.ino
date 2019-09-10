@@ -183,7 +183,6 @@ void setup() {
 
   httpUpdater.setup(&httpServer, UPDATE_PATH, www_username, www_password);
   httpServer.begin();
-
 }
 
 //*********************************************************************************************************
@@ -245,10 +244,10 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
   int result = digitalRead(pin);
 
   if (pin == VIRTUAL_PIN_THERMOSTAT) {
-    if (thermostat.last_state) return 0; else return 1;
+    thermostat.last_state == HIGH ? 1 : 0;
   }
   if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
-    if (digitalRead(PIN_THERMOSTAT)) return 0; else return 1;
+    return digitalRead(PIN_THERMOSTAT) ? 0 : 1;
   }
 
   /*Serial.print("Read(");
@@ -260,12 +259,9 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
 
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   if ( pin == VIRTUAL_PIN_THERMOSTAT ) {
-    if ( val != thermostat.last_state ) {
-      if (val == 0 ) thermostatOFF();
-
-      thermostat.last_state = val;
-      SuplaDevice.channelValueChanged(channelNumber, val);
-    }
+    if (val == 0 ) thermostatOFF();
+    thermostat.last_state = val;
+    SuplaDevice.channelValueChanged(channelNumber, val);
     return;
   }
   /*Serial.print("Write(");
@@ -528,7 +524,7 @@ void get_temperature_and_humidity(int channelNumber, double * temp, double * hum
 
 double get_temperature(int channelNumber, double last_val) {
   double t = -275;
-  //Serial.println("sdsadsa");
+
   int i = channelNumber - channelNumberDS18B20;
   if ( sensor[i].getDeviceCount() > 0 ) {
     if ( ds18b20[i].address != "FFFFFFFFFFFFFFFF" || ds18b20[i].type == 0) {

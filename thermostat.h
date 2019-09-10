@@ -12,14 +12,15 @@ typedef struct {
   double hyst;
   unsigned char upper_temp;
   unsigned char lower_temp;
-  int channel;
+  uint8_t channel;
+  uint8_t channelSensor;
   uint8_t last_state;
-  byte error;
+  uint8_t error;
 } _thermostat;
 extern _thermostat thermostat;
 
 void thermostat_start(void);
-unsigned char CheckTermostat(int channelNumber, double temp);
+bool CheckTermostat(int channelNumber, double temp);
 bool thermostatOFF();
 bool thermostatON();
 

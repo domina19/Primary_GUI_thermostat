@@ -13,16 +13,15 @@ extern "C" {
 
 void thermostat_start() {
   pinMode(PIN_THERMOSTAT, OUTPUT);
-  //digitalWrite(PIN_THERMOSTAT, THERMOSTAT_OFF);
   thermostatOFF();
   thermostat.temp = read_thermostat_temp();
   thermostat.hyst = read_thermostat_hyst();
   thermostat.channel = read_thermostat_channel();
-  
+  thermostat.channelSensor = 1;
   thermostat.error = 0;
 }
 
-unsigned char CheckTermostat(int channelNumber, double temp) {
+bool CheckTermostat(int channelNumber, double temp) {
   double pom;
   if (channelNumber == thermostat.channel ) {
     if (temp == -275) {
@@ -32,7 +31,7 @@ unsigned char CheckTermostat(int channelNumber, double temp) {
         thermostat.error = 0;
         thermostatOFF();
       }
-      return (2);
+      return false;
     }
     Serial.println("pomiar");
     pom = thermostat.temp - thermostat.hyst;
@@ -40,7 +39,7 @@ unsigned char CheckTermostat(int channelNumber, double temp) {
       if (temp > thermostat.temp) {
         thermostatOFF();
         Serial.println("Wyłącz przekaźnik - osiognięto gorny prób temperatury");
-        return (0);
+        return true;
       }
     }
     if (thermostat.upper_temp) {
@@ -49,24 +48,23 @@ unsigned char CheckTermostat(int channelNumber, double temp) {
           thermostatON();
           Serial.println("WŁĄCZ przekaźnik - osopgnięto dolny próg temperatury");
         }
-        return (1);
+        return true;
       }
     }
   }
-
-  return (2); //powrot z bledem
+  return false; //powrot z bledem
 }
 
 bool thermostatOFF() {
   thermostat.lower_temp = 0;
   thermostat.upper_temp = 1; //osiągnięto górny próg temperatury
   digitalWrite(PIN_THERMOSTAT, THERMOSTAT_OFF);
-  SuplaDevice.channelValueChanged(1, 1);
+  SuplaDevice.channelValueChanged(thermostat.channelSensor, 1);
 };
 
 bool thermostatON() {
   thermostat.lower_temp = 1; //osiągnięto dolny próg temperatury
   thermostat.upper_temp = 0;
   digitalWrite(PIN_THERMOSTAT, THERMOSTAT_ON);
-  SuplaDevice.channelValueChanged(1, 0);
+  SuplaDevice.channelValueChanged(thermostat.channelSensor, 0);
 };
