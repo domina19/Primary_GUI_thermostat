@@ -17,7 +17,7 @@ void thermostat_start() {
   thermostat.temp = read_thermostat_temp();
   thermostat.hyst = read_thermostat_hyst();
   thermostat.channel = read_thermostat_channel();
-  thermostat.channelSensor = 1;
+  thermostat.channelSensor = 2;
   thermostat.error = 0;
 }
 
