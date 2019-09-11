@@ -252,42 +252,31 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
   if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
     return digitalRead(PIN_THERMOSTAT) ? 0 : 1;
   }
-
-  /*Serial.print("Read(");
-    Serial.print(pin);
-    Serial.print("): ");
-    Serial.println(result);*/
-  return result;
 }
 
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   if ( pin == VIRTUAL_PIN_THERMOSTAT ) {
-    if (val == 0 ) thermostatOFF();
-    if (val == 1 ) SuplaDevice.channelValueChanged(1, 0);
+    if (val == thermostat.last_state) return;
+    if (val == 0) thermostatOFF(); else SuplaDevice.channelValueChanged(1, 0);
     Serial.println("sterowanie automatyczne");
 
     thermostat.last_state = val;
     SuplaDevice.channelValueChanged(channelNumber, val);
-    
+
     return;
   }
 
   if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL ) {
+   // if (val == thermostat.last_state_manual) return;
     if (thermostat.last_state == 1 ) return;
     Serial.println("sterowanie manualne");
 
     val ? thermostatON() : thermostatOFF();
     thermostat.last_state_manual = val;
     SuplaDevice.channelValueChanged(channelNumber, val);
-    
+
     return;
   }
-  /*Serial.print("Write(");
-    Serial.print(pin);
-    Serial.print(",");
-    Serial.print(val);
-    Serial.println(")");*/
-  digitalWrite(pin, val);
 }
 
 void supla_timer() {
