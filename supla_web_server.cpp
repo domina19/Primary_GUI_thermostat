@@ -331,10 +331,10 @@ String supla_webpage_start(int save) {
   }
   content += "<div class='w'>";
   content += "<h3>Ustawienia termostatu</h3>";
-  content += "<i><label>Temperatura wył.</label><input name='thermostat_temp' type='number' placeholder='20.0' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
+  content += "<i><label>Temperatura wył.</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
   content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(thermostat.hyst) + "'></i>";
   if (nr_ds18b20 > 0) {
-    content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channel) + "'></i>";
+    content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channelDs18b20) + "'></i>";
   }
   content += "</div>";
 

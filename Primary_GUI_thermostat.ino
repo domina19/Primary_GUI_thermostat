@@ -78,14 +78,14 @@ ETSTimer led_timer;
 // Setup a DHT instance
 //DHT dht(DHTPIN, DHTTYPE);
 DHT dht_sensor[MAX_DHT] = {
-  { 0, 0 },
-  { 0, 0 },
-  { 0, 0 },
-  { 0, 0 },
-  { 0, 0 },
-  { 0, 0 },
-  { 0, 0 },
-  { 0, 0 },
+  { -1, -1 },
+  { -1, -1 },
+  { -1, -1 },
+  { -1, -1 },
+  { -1, -1 },
+  { -1, -1 },
+  { -1, -1 },
+  { -1, -1 },
 };
 
 // Setup a DS18B20 instance
@@ -241,7 +241,7 @@ void supla_arduino_eth_setup(uint8_t mac[6], IPAddress *ip) {
 
 int supla_DigitalRead(int channelNumber, uint8_t pin) {
 
-  int result = digitalRead(pin);
+  //int result = digitalRead(pin);
 
   if (pin == VIRTUAL_PIN_THERMOSTAT_AUTO) {
     return thermostat.last_state_auto == HIGH ? 1 : 0;
@@ -256,25 +256,25 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
 
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   if ( pin == VIRTUAL_PIN_THERMOSTAT_AUTO && val != thermostat.last_state_auto) {
-	//if (val == thermostat.last_state_auto) return;
-    val ? SuplaDevice.channelValueChanged(thermostat.channelManual, 0) : thermostatOFF();
     Serial.println("sterowanie automatyczne");
-
-    thermostat.last_state_auto = val;
     SuplaDevice.channelValueChanged(channelNumber, val);
 
+    if (val) {
+      thermostat.last_state_manual = 0;
+      SuplaDevice.channelValueChanged(thermostat.channelManual, 0);
+    } else thermostatOFF();
+
+    thermostat.last_state_auto = val;
     return;
   }
 
-  if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL && val != thermostat.last_state_manual && thermostat.last_state_auto == 1) {
-   // if (val == thermostat.last_state_manual) return;
-    //if (thermostat.last_state_auto == 1 ) return;
+  if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL && val != thermostat.last_state_manual && thermostat.last_state_auto == 0) {
     Serial.println("sterowanie manualne");
-
-    val ? thermostatON() : thermostatOFF();
-    thermostat.last_state_manual = val;
     SuplaDevice.channelValueChanged(channelNumber, val);
 
+    if (val) thermostatON(); else thermostatOFF();
+
+    thermostat.last_state_manual = val;
     return;
   }
 }
@@ -518,7 +518,7 @@ void get_temperature_and_humidity(int channelNumber, double * temp, double * hum
   *temp = dht_sensor[channelNumber].readTemperature();
   *humidity = dht_sensor[channelNumber].readHumidity();
   //  static uint8_t error;
-  //  Serial.print("get_temperature_and_humidity - "); Serial.print(channelNumber); Serial.print(" -- "); Serial.print(*temp); Serial.print(" -- "); Serial.println(*humidity);
+    Serial.print("get_temperature_and_humidity - "); Serial.print(channelNumber); Serial.print(" -- "); Serial.print(*temp); Serial.print(" -- "); Serial.println(*humidity);
   if ( isnan(*temp) || isnan(*humidity) ) {
     *temp = -275;
     *humidity = -1;

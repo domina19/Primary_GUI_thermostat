@@ -16,7 +16,7 @@ void thermostat_start() {
   thermostatOFF();
   thermostat.temp = read_thermostat_temp();
   thermostat.hyst = read_thermostat_hyst();
-  thermostat.channel = read_thermostat_channel();
+  thermostat.channelDs18b20 = read_thermostat_channel();
   thermostat.channelAuto = 0;
   thermostat.channelManual = 1;
   thermostat.channelSensor = 2;
@@ -27,7 +27,7 @@ void thermostat_start() {
 
 bool CheckTermostat(int channelNumber, double temp) {
   double pom;
-  if (channelNumber == thermostat.channelDs18b20 && thermostat.last_state) {
+  if (channelNumber == thermostat.channelDs18b20 && thermostat.last_state_auto) {
     if (temp == -275) {
       thermostat.error++;
       Serial.println("error");
@@ -37,7 +37,7 @@ bool CheckTermostat(int channelNumber, double temp) {
       }
       return false;
     }
-    Serial.println("pomiar");
+    Serial.println("Pomiar ");Serial.println(temp);
     pom = thermostat.temp - thermostat.hyst;
     if (thermostat.lower_temp) {
       if (temp > thermostat.temp) {
@@ -48,7 +48,7 @@ bool CheckTermostat(int channelNumber, double temp) {
     }
     if (thermostat.upper_temp) {
       if (temp < pom) {
-        if (thermostat.last_state == 1 ) {
+        if (thermostat.last_state_auto == 1 ) {
           thermostatON();
           Serial.println("WŁĄCZ przekaźnik - osopgnięto dolny próg temperatury");
         }
