@@ -17,15 +17,17 @@ void thermostat_start() {
   thermostat.temp = read_thermostat_temp();
   thermostat.hyst = read_thermostat_hyst();
   thermostat.channel = read_thermostat_channel();
+  thermostat.channelAuto = 0;
+  thermostat.channelManual = 1;
   thermostat.channelSensor = 2;
   thermostat.error = 0;
-  thermostat.last_state = -1;
+  thermostat.last_state_auto = -1;
   thermostat.last_state_manual = -1;
 }
 
 bool CheckTermostat(int channelNumber, double temp) {
   double pom;
-  if (channelNumber == thermostat.channel && thermostat.last_state) {
+  if (channelNumber == thermostat.channelDs18b20 && thermostat.last_state) {
     if (temp == -275) {
       thermostat.error++;
       Serial.println("error");

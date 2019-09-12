@@ -243,11 +243,11 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
 
   int result = digitalRead(pin);
 
-  if (pin == VIRTUAL_PIN_THERMOSTAT) {
-    thermostat.last_state == HIGH ? 1 : 0;
+  if (pin == VIRTUAL_PIN_THERMOSTAT_AUTO) {
+    return thermostat.last_state_auto == HIGH ? 1 : 0;
   }
-  if (pin == VIRTUAL_PIN_THERMOSTAT) {
-    thermostat.last_state_manual == HIGH ? 1 : 0;
+  if (pin == VIRTUAL_PIN_THERMOSTAT_MANUAL) {
+    return thermostat.last_state_manual == HIGH ? 1 : 0;
   }
   if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
     return digitalRead(PIN_THERMOSTAT) ? 0 : 1;
@@ -255,20 +255,20 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
 }
 
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
-  if ( pin == VIRTUAL_PIN_THERMOSTAT ) {
-    if (val == thermostat.last_state) return;
-    if (val == 0) thermostatOFF(); else SuplaDevice.channelValueChanged(1, 0);
+  if ( pin == VIRTUAL_PIN_THERMOSTAT_AUTO && val != thermostat.last_state_auto) {
+	//if (val == thermostat.last_state_auto) return;
+    val ? SuplaDevice.channelValueChanged(thermostat.channelManual, 0) : thermostatOFF();
     Serial.println("sterowanie automatyczne");
 
-    thermostat.last_state = val;
+    thermostat.last_state_auto = val;
     SuplaDevice.channelValueChanged(channelNumber, val);
 
     return;
   }
 
-  if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL ) {
+  if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL && val != thermostat.last_state_manual && thermostat.last_state_auto == 1) {
    // if (val == thermostat.last_state_manual) return;
-    if (thermostat.last_state == 1 ) return;
+    //if (thermostat.last_state_auto == 1 ) return;
     Serial.println("sterowanie manualne");
 
     val ? thermostatON() : thermostatOFF();
@@ -374,10 +374,10 @@ void createWebServer() {
     }
     thermostat.temp = httpServer.arg("thermostat_temp").toFloat();
     thermostat.hyst = httpServer.arg("thermostat_hist").toFloat();
-    thermostat.channel = httpServer.arg("thermostat_channel").toInt();
+    thermostat.channelDs18b20 = httpServer.arg("thermostat_channel").toInt();
     save_thermostat_temp(thermostat.temp);
     save_thermostat_hyst(thermostat.hyst);
-    save_thermostat_channel(thermostat.channel);
+    save_thermostat_channel(thermostat.channelDs18b20);
 
     httpServer.send(200, "text/html", supla_webpage_start(1));
   });

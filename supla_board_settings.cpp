@@ -30,7 +30,7 @@ void supla_board_configuration(void) {
   //add_Relay_Button(13, 0, CHOICE_TYPE);
   //  add_Relay_Button_Invert(13, 12, CHOICE_TYPE);
 
-  add_Relay(VIRTUAL_PIN_THERMOSTAT);
+  add_Relay(VIRTUAL_PIN_THERMOSTAT_AUTO);
    add_Relay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
   //  add_Relay_Invert(5);
 
