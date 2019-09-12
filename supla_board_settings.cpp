@@ -31,7 +31,8 @@ void supla_board_configuration(void) {
   //  add_Relay_Button_Invert(13, 12, CHOICE_TYPE);
 
   add_Relay(VIRTUAL_PIN_THERMOSTAT_AUTO);
-   add_Relay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
+  SuplaDevice.addRelay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
+   //add_Relay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
   //  add_Relay_Invert(5);
 
   //  add_Roller_Shutter_Relays(5, 13) ;
@@ -44,7 +45,7 @@ void supla_board_configuration(void) {
   add_DS18B20Multi_Thermometer(5);
   //  add_DS18B20_Thermometer(2);
   //  add_DHT11_Thermometer(12);
-  //  add_DHT22_Thermometer(4);
+   // add_DHT22_Thermometer(5);
 
   add_Led_Config(LED_CONFIG_PIN);
   add_Config(CONFIG_PIN);
