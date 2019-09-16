@@ -37,6 +37,26 @@ const char * Supported_RelayFlag[2] = {
   "Pamiętaj stan"
 };
 
+const char * Supported_Gpio[17] = {
+  "GPIO0",
+  "GPIO1",
+  "GPIO2",
+  "GPIO3",
+  "GPIO4",
+  "GPIO5",
+  "",
+  "",
+  "",
+  "GPIO9",
+  "GPIO10",
+  "",
+  "GPIO12",
+  "GPIO13",
+  "GPIO14",
+  "GPIO15",
+  "GPIO16"
+};
+
 String supla_webpage_upddate(void) {
   String content = "";
 
@@ -323,6 +343,37 @@ String supla_webpage_start(int save) {
           }
           else content += "' >";
           content += (Supported_RelayFlag[suported_relay]);
+        }
+        content += "</select></i>";
+      }
+    }
+    if (MAX_GPIO > 0) {
+      for (int i = 0; i < MAX_GPIO; ++i) {
+        if ( i == 0) {
+          content += "<i><label>Przekaźnik";
+        } else if (i == 1) {
+          content += "<i><label>Termometr";
+        } else if ( i == 2) {
+          content += "<i><label>Led config";
+        } else if ( i == 3) {
+          content += "<i><label>Config (przycisk)";
+        }
+        //content += i;
+        content += "</label><select name='gpio_set";
+        content += i;
+        content += "'>";
+
+        for (int suported_gpio = 0; suported_gpio <= 16; suported_gpio++) {
+          if (Supported_Gpio[suported_gpio] != "") {
+            content += "<option value='";
+            content += suported_gpio;
+            int select_gpio = read_gpio(i);
+            if (select_gpio == suported_gpio) {
+              content += "' selected>";
+            }
+            else content += "' >";
+            content += (Supported_Gpio[suported_gpio]);
+          }
         }
         content += "</select></i>";
       }

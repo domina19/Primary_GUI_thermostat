@@ -40,11 +40,19 @@ extern "C" {
 #define DRD_ADDRESS 0 // RTC Memory Address for the DoubleResetDetector to use
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
+unsigned long eeprom_millis;
+
+uint8_t PIN_THERMOSTAT;
+uint8_t PIN_THERMOMETR;
+uint8_t LED_CONFIG_PIN;
+uint8_t CONFIG_PIN;
+
 int nr_button = 0;
 int nr_relay = 0;
 int invert = 0;
 int nr_ds18b20 = 0;
 int nr_dht = 0;
+int MAX_GPIO = 0;
 
 int dht_channel[MAX_DHT];
 _ds18b20_t ds18b20[MAX_DS18B20];
@@ -115,6 +123,11 @@ void setup() {
     save_guid();
   }
 
+  PIN_THERMOSTAT = read_gpio(0);
+  PIN_THERMOMETR = read_gpio(1);
+  LED_CONFIG_PIN = read_gpio(2);
+  CONFIG_PIN = read_gpio(3);
+
   supla_board_configuration();
 
   if (drd.detectDoubleReset()) {
@@ -136,7 +149,7 @@ void setup() {
   www_password = strcpy((char*)malloc(www_password1.length() + 1), www_password1.c_str());
   www_username = strcpy((char*)malloc(www_username1.length() + 1), www_username1.c_str());
 
-  //  Pokaz_zawartosc_eeprom();
+  //Pokaz_zawartosc_eeprom();
   read_guid();
   int Location_id = read_supla_id().toInt();
   strcpy(Supla_server, read_supla_server().c_str());
@@ -244,10 +257,10 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
   //int result = digitalRead(pin);
 
   if (pin == VIRTUAL_PIN_THERMOSTAT_AUTO) {
-    return thermostat.last_state_auto == HIGH ? 1 : 0;
+    return thermostat.last_state_auto;
   }
   if (pin == VIRTUAL_PIN_THERMOSTAT_MANUAL) {
-    return thermostat.last_state_manual == HIGH ? 1 : 0;
+    return thermostat.last_state_manual;
   }
   if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
     return digitalRead(PIN_THERMOSTAT) ? 0 : 1;
@@ -257,8 +270,8 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   if ( pin == VIRTUAL_PIN_THERMOSTAT_AUTO && val != thermostat.last_state_auto) {
     Serial.println("sterowanie automatyczne");
-    SuplaDevice.channelValueChanged(channelNumber, val);
-
+    //SuplaDevice.channelValueChanged(channelNumber, val);
+    eeprom_millis = millis() + 5000;
     if (val) {
       thermostat.last_state_manual = 0;
       SuplaDevice.channelValueChanged(thermostat.channelManual, 0);
@@ -270,7 +283,7 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
 
   if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL && val != thermostat.last_state_manual && thermostat.last_state_auto == 0) {
     Serial.println("sterowanie manualne");
-    SuplaDevice.channelValueChanged(channelNumber, val);
+    //SuplaDevice.channelValueChanged(channelNumber, val);
 
     if (val) thermostatON(); else thermostatOFF();
 
@@ -280,6 +293,10 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
 }
 
 void supla_timer() {
+  if (millis() > eeprom_millis) {
+    Serial.println("sdadasdsad");
+    eeprom_millis = millis() + 5000 ;
+  }
 
   //CONFIG ****************************************************************************************************
   int config_read = digitalRead(CONFIG_PIN);
@@ -372,13 +389,19 @@ void createWebServer() {
         }
       }
     }
+    if (MAX_GPIO > 0) {
+      for (int i = 0; i < MAX_GPIO; ++i) {
+        String gpio = "gpio_set";
+        gpio += i;
+        save_gpio(i, httpServer.arg(gpio));
+      }
+    }
     thermostat.temp = httpServer.arg("thermostat_temp").toFloat();
     thermostat.hyst = httpServer.arg("thermostat_hist").toFloat();
     thermostat.channelDs18b20 = httpServer.arg("thermostat_channel").toInt();
     save_thermostat_temp(thermostat.temp);
     save_thermostat_hyst(thermostat.hyst);
     save_thermostat_channel(thermostat.channelDs18b20);
-
     httpServer.send(200, "text/html", supla_webpage_start(1));
   });
 
@@ -506,6 +529,10 @@ void first_start(void) {
   save_login(DEFAULT_LOGIN);
   save_login_pass(DEFAULT_PASSWORD);
   save_supla_hostname(DEFAULT_HOSTNAME);
+  save_gpio(0, "4");//przekaźnik
+  save_gpio(1, "5");//termometr
+  save_gpio(2, "2");//led
+  save_gpio(3, "0");//config
 
 }
 
@@ -518,7 +545,7 @@ void get_temperature_and_humidity(int channelNumber, double * temp, double * hum
   *temp = dht_sensor[channelNumber].readTemperature();
   *humidity = dht_sensor[channelNumber].readHumidity();
   //  static uint8_t error;
-    Serial.print("get_temperature_and_humidity - "); Serial.print(channelNumber); Serial.print(" -- "); Serial.print(*temp); Serial.print(" -- "); Serial.println(*humidity);
+  Serial.print("get_temperature_and_humidity - "); Serial.print(channelNumber); Serial.print(" -- "); Serial.print(*temp); Serial.print(" -- "); Serial.println(*humidity);
   if ( isnan(*temp) || isnan(*humidity) ) {
     *temp = -275;
     *humidity = -1;

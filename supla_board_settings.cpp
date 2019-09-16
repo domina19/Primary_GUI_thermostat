@@ -17,7 +17,6 @@
 #include "supla_eeprom.h"
 #include "supla_web_server.h"
 #include "supla_board_settings.h"
-#include "thermostat.h"
 
 extern "C" {
 #include "user_interface.h"
@@ -26,26 +25,14 @@ extern "C" {
 
 
 void supla_board_configuration(void) {
-
-  //add_Relay_Button(13, 0, CHOICE_TYPE);
-  //  add_Relay_Button_Invert(13, 12, CHOICE_TYPE);
-
+//  if (Modul_tryb_konfiguracji == 2) return;
+  
+  MAX_GPIO = 4;
   add_Relay(VIRTUAL_PIN_THERMOSTAT_AUTO);
   SuplaDevice.addRelay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
-   //add_Relay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
-  //  add_Relay_Invert(5);
-
-  //  add_Roller_Shutter_Relays(5, 13) ;
-  //  add_Roller_Shutter_Buttons(0, 14, 12);
-  //  SuplaDevice.setRollerShutterFuncImpl(&supla_rs_SavePosition, &supla_rs_LoadPosition, &supla_rs_SaveSettings, &supla_rs_LoadSettings);
-
-    add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);
-  //  add_Sensor(16);
-
-  add_DS18B20Multi_Thermometer(5);
-  //  add_DS18B20_Thermometer(2);
-  //  add_DHT11_Thermometer(12);
-   // add_DHT22_Thermometer(5);
+  add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);
+  add_DS18B20Multi_Thermometer(PIN_THERMOMETR);
+  //add_DHT22_Thermometer(PIN_THERMOMETR);
 
   add_Led_Config(LED_CONFIG_PIN);
   add_Config(CONFIG_PIN);

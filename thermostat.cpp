@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "supla_eeprom.h"
+#include "supla_settings.h"
 #include "thermostat.h"
 
 #define SUPLADEVICE_CPP
@@ -21,8 +22,8 @@ void thermostat_start() {
   thermostat.channelManual = 1;
   thermostat.channelSensor = 2;
   thermostat.error = 0;
-  thermostat.last_state_auto = -1;
-  thermostat.last_state_manual = -1;
+  thermostat.last_state_auto = 0;
+  thermostat.last_state_manual = 0;
 }
 
 bool CheckTermostat(int channelNumber, double temp) {

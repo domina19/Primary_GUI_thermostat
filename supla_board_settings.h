@@ -7,6 +7,7 @@ extern int nr_button;
 extern int nr_relay;
 extern int nr_ds18b20;
 extern int nr_dht;
+extern int MAX_GPIO;
 extern int dht_channel[];
 
 typedef struct {
