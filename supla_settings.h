@@ -30,10 +30,13 @@ extern uint8_t CONFIG_PIN; //D3     // triger config
 #define VIRTUAL_PIN_THERMOSTAT_AUTO 99
 #define VIRTUAL_PIN_THERMOSTAT_MANUAL 98
 #define VIRTUAL_PIN_SENSOR_THERMOSTAT 97
+#define VIRTUAL_PIN_SET_TEMP 96
+#define VIRTUAL_PIN_THERMOMETR 95
 extern uint8_t PIN_THERMOSTAT;
 extern uint8_t PIN_THERMOMETR;
+extern double save_temp;
 //EEPROM *************************************************************************************************
-#define EEPROM_SIZE           4096/4
+#define EEPROM_SIZE           4096
 
 #define  MAX_SSID            32
 #define  MAX_PASSWORD        64

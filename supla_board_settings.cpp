@@ -30,6 +30,8 @@ void supla_board_configuration(void) {
   MAX_GPIO = 4;
   add_Relay(VIRTUAL_PIN_THERMOSTAT_AUTO);
   SuplaDevice.addRelay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
+  SuplaDevice.addRelay(VIRTUAL_PIN_SET_TEMP);
+  SuplaDevice.addDS18B20Thermometer();
   add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);
   add_DS18B20Multi_Thermometer(PIN_THERMOMETR);
   //add_DHT22_Thermometer(PIN_THERMOMETR);

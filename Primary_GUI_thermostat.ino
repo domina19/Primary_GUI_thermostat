@@ -41,6 +41,7 @@ extern "C" {
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 unsigned long eeprom_millis;
+double save_temp;
 
 uint8_t PIN_THERMOSTAT;
 uint8_t PIN_THERMOMETR;
@@ -141,8 +142,6 @@ void setup() {
   delay(5000);
   drd.stop();
 
-
-
   String www_username1 = String(read_login().c_str());
   String www_password1 = String(read_login_pass().c_str());
 
@@ -196,6 +195,7 @@ void setup() {
 
   httpUpdater.setup(&httpServer, UPDATE_PATH, www_username, www_password);
   httpServer.begin();
+
 }
 
 //*********************************************************************************************************
@@ -265,13 +265,15 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
   if (pin == VIRTUAL_PIN_SENSOR_THERMOSTAT) {
     return digitalRead(PIN_THERMOSTAT) ? 0 : 1;
   }
+  if ( pin == VIRTUAL_PIN_SET_TEMP ) {
+    //return 1;
+  }
 }
 
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   if ( pin == VIRTUAL_PIN_THERMOSTAT_AUTO && val != thermostat.last_state_auto) {
     Serial.println("sterowanie automatyczne");
     //SuplaDevice.channelValueChanged(channelNumber, val);
-    eeprom_millis = millis() + 5000;
     if (val) {
       thermostat.last_state_manual = 0;
       SuplaDevice.channelValueChanged(thermostat.channelManual, 0);
@@ -284,18 +286,33 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL && val != thermostat.last_state_manual && thermostat.last_state_auto == 0) {
     Serial.println("sterowanie manualne");
     //SuplaDevice.channelValueChanged(channelNumber, val);
-
     if (val) thermostatON(); else thermostatOFF();
 
     thermostat.last_state_manual = val;
     return;
   }
+
+  if ( pin == VIRTUAL_PIN_SET_TEMP ) {
+    if (val) {
+      thermostat.temp += 0.5;
+    } else {
+      thermostat.temp -= 0.5;
+    }
+    SuplaDevice.channelDoubleValueChanged(3, thermostat.temp);
+    eeprom_millis = millis() + 10000;
+    //thermostat.last_set_temp = val;
+  }
 }
 
 void supla_timer() {
-  if (millis() > eeprom_millis) {
-    Serial.println("sdadasdsad");
-    eeprom_millis = millis() + 5000 ;
+  if ( eeprom_millis < millis() ) {
+    if ( save_temp != thermostat.temp) {
+      Serial.println("zapisano temperaturę");
+      save_thermostat_temp(thermostat.temp);
+    }
+    save_temp = thermostat.temp;
+    SuplaDevice.channelDoubleValueChanged(3, thermostat.temp);
+    eeprom_millis = millis() + 10000;
   }
 
   //CONFIG ****************************************************************************************************
@@ -312,7 +329,7 @@ void supla_timer() {
         Modul_tryb_konfiguracji = 1;
         Tryb_konfiguracji();
       } else if (config_state == LOW && Modul_tryb_konfiguracji == 1) {
-        ESP.reset();
+        resetESP();
       }
     }
   }
@@ -399,9 +416,13 @@ void createWebServer() {
     thermostat.temp = httpServer.arg("thermostat_temp").toFloat();
     thermostat.hyst = httpServer.arg("thermostat_hist").toFloat();
     thermostat.channelDs18b20 = httpServer.arg("thermostat_channel").toInt();
+    thermostat.type = httpServer.arg("thermostat_type").toInt();
+
     save_thermostat_temp(thermostat.temp);
     save_thermostat_hyst(thermostat.hyst);
     save_thermostat_channel(thermostat.channelDs18b20);
+    save_thermostat_type(thermostat.type);
+
     httpServer.send(200, "text/html", supla_webpage_start(1));
   });
 
@@ -423,7 +444,7 @@ void createWebServer() {
     }
     httpServer.send(200, "text/html", supla_webpage_start(2));
     delay(100);
-    ESP.reset();
+    resetESP();
   });
   httpServer.on("/setup", []() {
     if (Modul_tryb_konfiguracji == 0) {
@@ -473,6 +494,7 @@ void Tryb_konfiguracji() {
   if (Modul_tryb_konfiguracji == 2) {
     supla_ds18b20_start();
     supla_dht_start();
+    thermostat_start();
 
     while (1) {
       httpServer.handleClient();
@@ -533,6 +555,7 @@ void first_start(void) {
   save_gpio(1, "5");//termometr
   save_gpio(2, "2");//led
   save_gpio(3, "0");//config
+  save_thermostat_type(1); //grzanie
 
 }
 
@@ -789,4 +812,11 @@ void SetupDS18B20Multi() {
     Serial.print("Temp C: ");
     Serial.println(tempC);
   }
+}
+
+void resetESP() {
+  WiFi.forceSleepBegin();
+  wdt_reset();
+  ESP.restart();
+  while (1)wdt_reset();
 }

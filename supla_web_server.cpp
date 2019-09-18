@@ -57,6 +57,11 @@ const char * Supported_Gpio[17] = {
   "GPIO16"
 };
 
+const char * Supported_ThermostatType[2] = {
+  "Chłodzenie",
+  "Grzanie"
+};
+
 String supla_webpage_upddate(void) {
   String content = "";
 
@@ -269,7 +274,9 @@ String supla_webpage_start(int save) {
         content += "><label>";
         if (temp != -275)content += temp;
         else content += "--.--";
-        content += " <b>&deg;C</b> ";
+        content += " <b>&deg;C</b>";
+        content += "</label><label style='left:90px'>CH:";
+        content += i;
         content += "</label></i>";
       } else if (ds18b20[i].type == 0) {
         content += "<i><label>";
@@ -328,8 +335,8 @@ String supla_webpage_start(int save) {
         byte v = digitalRead(relay_button_channel[i - 1].relay);
         if (relay_button_channel[i - 1].invert == 1) v ^= 1;
         content += "<i><label ";
-        content += ">Przekaźnik ";
-        content += i;
+        content += ">Przekaźnik";
+        //content += i;
         if (v == 1) content += " <font color='red' style='background-color:red'>##</font>";
         content += "</label><select name='relay_set";
         content += i;
@@ -356,7 +363,7 @@ String supla_webpage_start(int save) {
         } else if ( i == 2) {
           content += "<i><label>Led config";
         } else if ( i == 3) {
-          content += "<i><label>Config (przycisk)";
+          content += "<i><label>Przycisk config 5s";
         }
         //content += i;
         content += "</label><select name='gpio_set";
@@ -382,7 +389,23 @@ String supla_webpage_start(int save) {
   }
   content += "<div class='w'>";
   content += "<h3>Ustawienia termostatu</h3>";
-  content += "<i><label>Temperatura wył.</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
+  for (int i = 1; i <= nr_relay; ++i) {
+    content += "<i><label>";
+    content += "Rodzaj";
+    content += "</label><select name='thermostat_type'>";
+    for (int suported_therm_type = 0; suported_therm_type < 2; suported_therm_type++) {
+      content += "<option value='";
+      content += suported_therm_type;
+      int select_relay = read_thermostat_type();
+      if (select_relay == suported_therm_type) {
+        content += "' selected>";
+      }
+      else content += "' >";
+      content += (Supported_ThermostatType[suported_therm_type]);
+    }
+    content += "</select></i>";
+  }
+  content += "<i><label>Temperatura ON</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
   content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(thermostat.hyst) + "'></i>";
   if (nr_ds18b20 > 0) {
     content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channelDs18b20) + "'></i>";

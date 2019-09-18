@@ -12,21 +12,37 @@ extern "C" {
 #include "user_interface.h"
 }
 
+int relayStatus;
+
 void thermostat_start() {
   pinMode(PIN_THERMOSTAT, OUTPUT);
   thermostatOFF();
   thermostat.temp = read_thermostat_temp();
   thermostat.hyst = read_thermostat_hyst();
   thermostat.channelDs18b20 = read_thermostat_channel();
+  thermostat.type = read_thermostat_type();
+
   thermostat.channelAuto = 0;
   thermostat.channelManual = 1;
-  thermostat.channelSensor = 2;
+  thermostat.channelSensor = 4;
   thermostat.error = 0;
   thermostat.last_state_auto = 0;
   thermostat.last_state_manual = 0;
+  thermostat.last_set_temp = 0;
+
+  //ustawienie temperatury termostatu na kanału
+  SuplaDevice.channelDoubleValueChanged(3, thermostat.temp);
 }
 
-bool CheckTermostat(int channelNumber, double temp) {
+void CheckTermostat(int channelNumber, double temp) {
+  if (thermostat.type) {
+    CheckTermostatWarming(channelNumber, temp);
+  } else {
+    CheckTermostatCooling(channelNumber, temp);
+  }
+}
+
+void CheckTermostatWarming(int channelNumber, double temp) {
   double pom;
   if (channelNumber == thermostat.channelDs18b20 && thermostat.last_state_auto) {
     if (temp == -275) {
@@ -36,40 +52,62 @@ bool CheckTermostat(int channelNumber, double temp) {
         thermostat.error = 0;
         thermostatOFF();
       }
-      return false;
+      return;
     }
-    Serial.println("Pomiar ");Serial.println(temp);
-    pom = thermostat.temp - thermostat.hyst;
-    if (thermostat.lower_temp) {
-      if (temp > thermostat.temp) {
-        thermostatOFF();
-        Serial.println("Wyłącz przekaźnik - osiognięto gorny prób temperatury");
-        return true;
-      }
+    Serial.print("Grzanie - pomiar "); Serial.println(temp);
+
+    pom = thermostat.temp + thermostat.hyst ;
+
+    if (relayStatus == 0 && temp <= thermostat.temp) {
+      thermostatON();
+      Serial.println("ON");
+      return;
     }
-    if (thermostat.upper_temp) {
-      if (temp < pom) {
-        if (thermostat.last_state_auto == 1 ) {
-          thermostatON();
-          Serial.println("WŁĄCZ przekaźnik - osopgnięto dolny próg temperatury");
-        }
-        return true;
-      }
+    if ( relayStatus == 1 && temp > pom) {
+      thermostatOFF();
+      Serial.println("OFF");
+      return;
     }
   }
-  return false; //powrot z bledem
+}
+
+void CheckTermostatCooling(int channelNumber, double temp) {
+  double pom;
+  if (channelNumber == thermostat.channelDs18b20 && thermostat.last_state_auto) {
+    if (temp == -275) {
+      thermostat.error++;
+      Serial.println("error");
+      if (thermostat.error == 10) {
+        thermostat.error = 0;
+        thermostatOFF();
+      }
+      return;
+    }
+    Serial.print("Chłodzenie - pomiar: "); Serial.println(temp);
+
+    pom = thermostat.temp - thermostat.hyst ;
+
+    if ( relayStatus == 1 && temp < pom ) {
+      thermostatOFF();
+      Serial.println("OFF");
+      return;
+    }
+    if (relayStatus == 0 && temp >= thermostat.temp) {
+      thermostatON();
+      Serial.println("ON");
+      return;
+    }
+  }
 }
 
 bool thermostatOFF() {
-  thermostat.lower_temp = 0;
-  thermostat.upper_temp = 1; //osiągnięto górny próg temperatury
+  relayStatus = 0;
   digitalWrite(PIN_THERMOSTAT, THERMOSTAT_OFF);
   SuplaDevice.channelValueChanged(thermostat.channelSensor, 1);
 };
 
 bool thermostatON() {
-  thermostat.lower_temp = 1; //osiągnięto dolny próg temperatury
-  thermostat.upper_temp = 0;
+  relayStatus = 1;
   digitalWrite(PIN_THERMOSTAT, THERMOSTAT_ON);
   SuplaDevice.channelValueChanged(thermostat.channelSensor, 0);
 };
