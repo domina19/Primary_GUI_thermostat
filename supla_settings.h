@@ -20,13 +20,17 @@
 #define  MAX_DHT               8
 
 //DS18B20 ************************************************************************************************
-#define  MAX_DS18B20            3 //maksymalnie 8
+
+extern uint8_t MAX_DS18B20; //maksymalnie 8
+#define MAX_DS18B20_ARR 8
 #define  TEMPERATURE_PRECISION  10  // rozdzielczość czujnika DS 9 -12 bit
 //LED CONFIG *********************************************************************************************
 extern uint8_t LED_CONFIG_PIN;
 //CONFIG PIN *********************************************************************************************
 extern uint8_t CONFIG_PIN; //D3     // triger config
 
+extern uint8_t PIN_BUTTON_AUTO;
+extern uint8_t PIN_BUTTON_MANUAL;
 #define VIRTUAL_PIN_THERMOSTAT_AUTO 99
 #define VIRTUAL_PIN_THERMOSTAT_MANUAL 98
 #define VIRTUAL_PIN_SENSOR_THERMOSTAT 97
@@ -36,7 +40,7 @@ extern uint8_t PIN_THERMOSTAT;
 extern uint8_t PIN_THERMOMETR;
 extern double save_temp;
 //EEPROM *************************************************************************************************
-#define EEPROM_SIZE           4096
+#define EEPROM_SIZE           4096/4
 
 #define  MAX_SSID            32
 #define  MAX_PASSWORD        64
@@ -49,8 +53,10 @@ extern double save_temp;
 #define  MAX_HOSTNAME        32
 #define  MAX_BUTTON          16
 #define  MAX_RELAY           16
-#define  MAX_DS18B20_SIZE    16
-#define  MAX_GPIO_SIZE           16
+#define  MAX_RELAY_STATE     16
+#define  MAX_DS18B20_EEPROM  16   
+#define  MAX_DS18B20_SIZE    128
+#define  MAX_GPIO_SIZE       16
 
 #define  GUI_BLUE              "#005c96"
 #define  GUI_GREEN             "#00D151"

@@ -47,6 +47,9 @@ uint8_t PIN_THERMOSTAT;
 uint8_t PIN_THERMOMETR;
 uint8_t LED_CONFIG_PIN;
 uint8_t CONFIG_PIN;
+uint8_t MAX_DS18B20;
+uint8_t PIN_BUTTON_AUTO;
+uint8_t PIN_BUTTON_MANUAL;
 
 int nr_button = 0;
 int nr_relay = 0;
@@ -56,7 +59,7 @@ int nr_dht = 0;
 int MAX_GPIO = 0;
 
 int dht_channel[MAX_DHT];
-_ds18b20_t ds18b20[MAX_DS18B20];
+_ds18b20_t ds18b20[MAX_DS18B20_ARR];
 _relay_button_channel relay_button_channel[MAX_RELAY];
 
 double temp_html;
@@ -98,9 +101,9 @@ DHT dht_sensor[MAX_DHT] = {
 };
 
 // Setup a DS18B20 instance
-OneWire ds18x20[MAX_DS18B20] = 0;
+OneWire ds18x20[MAX_DS18B20_ARR] = 0;
 //const int oneWireCount = sizeof(ds18x20) / sizeof(OneWire);
-DallasTemperature sensor[MAX_DS18B20];
+DallasTemperature sensor[MAX_DS18B20_ARR];
 int channelNumberDS18B20 = 0;
 
 //SUPLA ****************************************************************************************************
@@ -128,6 +131,11 @@ void setup() {
   PIN_THERMOMETR = read_gpio(1);
   LED_CONFIG_PIN = read_gpio(2);
   CONFIG_PIN = read_gpio(3);
+  PIN_BUTTON_AUTO = read_gpio(4);
+  int val = read_gpio(5);
+  PIN_BUTTON_MANUAL = val == 16 ? -1 : val;
+
+  MAX_DS18B20 = read_thermostat_max_ds();
 
   supla_board_configuration();
 
@@ -266,8 +274,9 @@ int supla_DigitalRead(int channelNumber, uint8_t pin) {
     return digitalRead(PIN_THERMOSTAT) ? 0 : 1;
   }
   if ( pin == VIRTUAL_PIN_SET_TEMP ) {
-    //return 1;
+    return -1;
   }
+  return digitalRead(pin);
 }
 
 void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
@@ -277,13 +286,17 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
     if (val) {
       thermostat.last_state_manual = 0;
       SuplaDevice.channelValueChanged(thermostat.channelManual, 0);
-    } else thermostatOFF();
+      supla_led_blinking_stop();
+    } else  {
+      thermostatOFF();
+      supla_led_blinking(LED_CONFIG_PIN, 0);
+    }
 
     thermostat.last_state_auto = val;
     return;
   }
 
-  if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL && val != thermostat.last_state_manual && thermostat.last_state_auto == 0) {
+  if ( pin == VIRTUAL_PIN_THERMOSTAT_MANUAL && val != thermostat.last_state_manual) {
     Serial.println("sterowanie manualne");
     //SuplaDevice.channelValueChanged(channelNumber, val);
     if (val) thermostatON(); else thermostatOFF();
@@ -292,7 +305,7 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
     return;
   }
 
-  if ( pin == VIRTUAL_PIN_SET_TEMP ) {
+  if ( pin == VIRTUAL_PIN_SET_TEMP  ) {
     if (val) {
       thermostat.temp += 0.5;
     } else {
@@ -300,8 +313,10 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
     }
     SuplaDevice.channelDoubleValueChanged(3, thermostat.temp);
     eeprom_millis = millis() + 10000;
-    //thermostat.last_set_temp = val;
+    return;
   }
+
+  digitalWrite(pin, val);
 }
 
 void supla_timer() {
@@ -418,10 +433,12 @@ void createWebServer() {
     thermostat.channelDs18b20 = httpServer.arg("thermostat_channel").toInt();
     thermostat.type = httpServer.arg("thermostat_type").toInt();
 
+
     save_thermostat_temp(thermostat.temp);
     save_thermostat_hyst(thermostat.hyst);
     save_thermostat_channel(thermostat.channelDs18b20);
     save_thermostat_type(thermostat.type);
+    save_thermostat_max_ds( httpServer.arg("thermostat_max_ds").toInt());
 
     httpServer.send(200, "text/html", supla_webpage_start(1));
   });
@@ -555,7 +572,10 @@ void first_start(void) {
   save_gpio(1, "5");//termometr
   save_gpio(2, "2");//led
   save_gpio(3, "0");//config
+  save_gpio(4, "0");//przycisk auto
+  save_gpio(5, "17");//przycisk manual
   save_thermostat_type(1); //grzanie
+  save_thermostat_max_ds(2);
 
 }
 
@@ -784,10 +804,10 @@ String GetAddressToString(DeviceAddress deviceAddress) {
 
 void SetupDS18B20Multi() {
   DeviceAddress devAddr[MAX_DS18B20];  //An array device temperature sensors
-  int numberOfDevices; //Number of temperature devices found
-  numberOfDevices = sensor[0].getDeviceCount();
+  //int numberOfDevices; //Number of temperature devices found
+  //numberOfDevices = sensor[0].getDeviceCount();
   // Loop through each device, print out address
-  for (int i = 0; i < numberOfDevices; i++) {
+  for (int i = 0; i < MAX_DS18B20; i++) {
     sensor[i].requestTemperatures();
     // Search the wire for address
     if ( sensor[i].getAddress(devAddr[i], i) ) {

@@ -27,9 +27,9 @@ extern "C" {
 void supla_board_configuration(void) {
 //  if (Modul_tryb_konfiguracji == 2) return;
   
-  MAX_GPIO = 4;
-  add_Relay(VIRTUAL_PIN_THERMOSTAT_AUTO);
-  SuplaDevice.addRelay(VIRTUAL_PIN_THERMOSTAT_MANUAL);
+  MAX_GPIO = 6;
+  add_Relay_Button(VIRTUAL_PIN_THERMOSTAT_AUTO, PIN_BUTTON_AUTO, 1);
+  SuplaDevice.addRelayButton(VIRTUAL_PIN_THERMOSTAT_MANUAL, PIN_BUTTON_MANUAL, 1, 0);
   SuplaDevice.addRelay(VIRTUAL_PIN_SET_TEMP);
   SuplaDevice.addDS18B20Thermometer();
   add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);

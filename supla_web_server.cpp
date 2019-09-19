@@ -37,7 +37,7 @@ const char * Supported_RelayFlag[2] = {
   "Pamiętaj stan"
 };
 
-const char * Supported_Gpio[17] = {
+const char * Supported_Gpio[18] = {
   "GPIO0",
   "GPIO1",
   "GPIO2",
@@ -54,7 +54,8 @@ const char * Supported_Gpio[17] = {
   "GPIO13",
   "GPIO14",
   "GPIO15",
-  "GPIO16"
+  "GPIO16",
+  "BRAK"
 };
 
 const char * Supported_ThermostatType[2] = {
@@ -111,7 +112,7 @@ String supla_webpage_search(int save) {
       content += "<i><input name='ds18b20_id_";
       content += i;
       content += "' value='" + String(ds18b20[i].address.c_str()) + "' maxlength=";
-      content += MAX_DS18B20_SIZE;
+      content += MAX_DS18B20_EEPROM;
       content += " readonly><label>";
       if (temp != -275)content += temp;
       else content += "--.--";
@@ -134,7 +135,7 @@ String supla_webpage_search(int save) {
       // Search the wire for address
       if ( sensor[i].getAddress(tempSensor, i) ) {
         content += "<i><input value='" + GetAddressToString(tempSensor) + "' length=";
-        content += MAX_DS18B20_SIZE;
+        content += MAX_DS18B20_EEPROM;
         content += " readonly><label></i>";
       }
     }
@@ -270,7 +271,7 @@ String supla_webpage_start(int save) {
         content += "<i><input name='ds18b20_id_";
         content += i;
         content += "' value='" + String(ds18b20[i].address.c_str()) + "' maxlength=";
-        content += MAX_DS18B20_SIZE;
+        content += MAX_DS18B20_EEPROM;
         content += "><label>";
         if (temp != -275)content += temp;
         else content += "--.--";
@@ -309,7 +310,7 @@ String supla_webpage_start(int save) {
   if (nr_button > 0 || nr_relay > 0) {
     content += "<div class='w'>";
     content += "<h3>Ustawienia modułu</h3>";
-    if (nr_button > 0) {
+    /*if (nr_button > 0) {
       for (int i = 1; i <= nr_button; ++i) {
         content += "<i><label>Przycisk ";
         content += i;
@@ -329,13 +330,13 @@ String supla_webpage_start(int save) {
         }
         content += "</select></i>";
       }
-    }
+      }*/
     if (nr_relay > 0) {
       for (int i = 1; i <= nr_relay; ++i) {
         byte v = digitalRead(relay_button_channel[i - 1].relay);
         if (relay_button_channel[i - 1].invert == 1) v ^= 1;
         content += "<i><label ";
-        content += ">Przekaźnik";
+        content += ">Stan termostatu";
         //content += i;
         if (v == 1) content += " <font color='red' style='background-color:red'>##</font>";
         content += "</label><select name='relay_set";
@@ -364,13 +365,17 @@ String supla_webpage_start(int save) {
           content += "<i><label>Led config";
         } else if ( i == 3) {
           content += "<i><label>Przycisk config 5s";
+        } else if ( i == 4) {
+          content += "<i><label>Przycisk AUTO";
+        } else if ( i == 5) {
+          content += "<i><label>Przycisk MANUAL";
         }
         //content += i;
         content += "</label><select name='gpio_set";
         content += i;
         content += "'>";
 
-        for (int suported_gpio = 0; suported_gpio <= 16; suported_gpio++) {
+        for (int suported_gpio = 0; suported_gpio < 18; suported_gpio++) {
           if (Supported_Gpio[suported_gpio] != "") {
             content += "<option value='";
             content += suported_gpio;
@@ -385,6 +390,7 @@ String supla_webpage_start(int save) {
         content += "</select></i>";
       }
     }
+    content += "<i><label>MAX DS18b20</label><input name='thermostat_max_ds' type='number' placeholder='0' step='1' min='1' max='8' value='" + String(read_thermostat_max_ds()) + "'></i>";
     content += "</div>";
   }
   content += "<div class='w'>";
@@ -461,6 +467,7 @@ void status_func(int status, const char *msg) {
   static int lock;
   if (status == 17) {
     supla_led_blinking_stop();
+    if (thermostat.last_state_auto == 0) supla_led_blinking(LED_CONFIG_PIN, 0);
     lock = 0;
   }
   else if (status != 17 && lock == 0) {
