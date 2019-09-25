@@ -28,16 +28,19 @@ extern uint8_t MAX_DS18B20; //maksymalnie 8
 extern uint8_t LED_CONFIG_PIN;
 //CONFIG PIN *********************************************************************************************
 extern uint8_t CONFIG_PIN; //D3     // triger config
-
+//GPIO
+#define MAX_GPIO 6
+//THERMOSTAT**********************************************************************************************
 extern uint8_t PIN_BUTTON_AUTO;
 extern uint8_t PIN_BUTTON_MANUAL;
+extern uint8_t PIN_THERMOSTAT;
+extern uint8_t PIN_THERMOMETR;
 #define VIRTUAL_PIN_THERMOSTAT_AUTO 99
 #define VIRTUAL_PIN_THERMOSTAT_MANUAL 98
 #define VIRTUAL_PIN_SENSOR_THERMOSTAT 97
 #define VIRTUAL_PIN_SET_TEMP 96
 #define VIRTUAL_PIN_THERMOMETR 95
-extern uint8_t PIN_THERMOSTAT;
-extern uint8_t PIN_THERMOMETR;
+
 extern double save_temp;
 //EEPROM *************************************************************************************************
 #define EEPROM_SIZE           4096/4
@@ -54,7 +57,7 @@ extern double save_temp;
 #define  MAX_BUTTON          16
 #define  MAX_RELAY           16
 #define  MAX_RELAY_STATE     16
-#define  MAX_DS18B20_EEPROM  16   
+#define  MAX_DS18B20_EEPROM  16
 #define  MAX_DS18B20_SIZE    128
 #define  MAX_GPIO_SIZE       16
 
@@ -83,8 +86,6 @@ void supla_led_blinking_stop(void);
 
 void add_Sensor(int sensor);
 void add_SensorNO(int sensor);
-void add_Roller_Shutter_Buttons(int channel, int button1, int button2);
-void add_Roller_Shutter_Relays(int relay1, int relay2);
 void add_Led_Config(int led);
 void add_Config(int pin);
 void add_Relay(int relay);

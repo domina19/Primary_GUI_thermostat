@@ -494,7 +494,7 @@ void save_gpio(int nr, String save) {
 
 
 int read_gpio(int nr) {
-  String read_eeprom;
+  String read_eeprom = "";
   int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + (nr * 2);
   int koniec = start + 2;
 
@@ -581,20 +581,131 @@ uint8_t read_thermostat_type() {
   return temp;
 }
 
-void save_thermostat_max_ds(uint8_t temp) {
+void save_thermostat_max_ds(uint8_t val) {
+  String save = String(val);
   int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4;
+  int koniec = start + 2;
+
+  int len = save.length();
+  if (len == 0) len = 2;
   EEPROM.begin(EEPROM_SIZE);
-  EEPROM.put(start, temp);
-  EEPROM.commit();
+  for (int i = 0; i < len; ++i) {
+    EEPROM.write(start + i, save[i]);
+  }
+  for (int i = start + len; i < koniec; ++i) {
+    EEPROM.write(i, 0);
+  }
   EEPROM.end();
 }
 
 uint8_t read_thermostat_max_ds() {
-  uint8_t temp = 0;
+  String read_eeprom = "";
   int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4;
+  int koniec = start + 2;
+
   EEPROM.begin(EEPROM_SIZE);
   delay(100);
-  EEPROM.get(start, temp);
+  for (int i = start; i < koniec; ++i) {
+    read_eeprom += char(EEPROM.read(i));
+  }
   EEPROM.end();
-  return temp;
+  // read_eeprom = read_eeprom.c_str();
+  return atoi(read_eeprom.c_str());
+}
+
+void save_type_sensor(int val) {
+  String save = String(val);
+  int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4 + 4;
+  int koniec = start + 2;
+
+  int len = save.length();
+  if (len == 0) len = 2;
+  EEPROM.begin(EEPROM_SIZE);
+  for (int i = 0; i < len; ++i) {
+    EEPROM.write(start + i, save[i]);
+  }
+  for (int i = start + len; i < koniec; ++i) {
+    EEPROM.write(i, 0);
+  }
+  EEPROM.end();
+}
+
+int read_type_sensor() {
+  String read_eeprom = "";
+  int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4 + 4;
+  int koniec = start + 2;
+
+  EEPROM.begin(EEPROM_SIZE);
+  delay(100);
+  for (int i = start; i < koniec; ++i) {
+    read_eeprom += char(EEPROM.read(i));
+  }
+  EEPROM.end();
+  // read_eeprom = read_eeprom.c_str();
+  return atoi(read_eeprom.c_str());
+}
+
+void save_thermostat_humidity(int val) {
+  String save = String(val);
+  int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4 + 4 + 2;
+  int koniec = start + 2;
+
+  int len = save.length();
+  if (len == 0) len = 2;
+  EEPROM.begin(EEPROM_SIZE);
+  for (int i = 0; i < len; ++i) {
+    EEPROM.write(start + i, save[i]);
+  }
+  for (int i = start + len; i < koniec; ++i) {
+    EEPROM.write(i, 0);
+  }
+  EEPROM.end();
+}
+
+
+int read_thermostat_humidity() {
+  String read_eeprom = "";
+  int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4 + 4 + 2;
+  int koniec = start + 2;
+
+  EEPROM.begin(EEPROM_SIZE);
+  delay(100);
+  for (int i = start; i < koniec; ++i) {
+    read_eeprom += char(EEPROM.read(i));
+  }
+  EEPROM.end();
+  // read_eeprom = read_eeprom.c_str();
+  return atoi(read_eeprom.c_str());
+}
+
+void save_invert_relay(int val) {
+  String save = String(val);
+  int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4 + 4 + 2 + 2;
+  int koniec = start + 1;
+
+  int len = save.length();
+  if (len == 0) len = 2;
+  EEPROM.begin(EEPROM_SIZE);
+  for (int i = 0; i < len; ++i) {
+    EEPROM.write(start + i, save[i]);
+  }
+  for (int i = start + len; i < koniec; ++i) {
+    EEPROM.write(i, 0);
+  }
+  EEPROM.end();
+}
+
+int read_invert_relay() {
+  String read_eeprom = "";
+  int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY + MAX_RELAY_STATE + MAX_DS18B20_SIZE + MAX_GPIO_SIZE + 8 + 8 + 4 + 4 + 4 + 2 + 2;
+  int koniec = start + 1;
+
+  EEPROM.begin(EEPROM_SIZE);
+  delay(100);
+  for (int i = start; i < koniec; ++i) {
+    read_eeprom += char(EEPROM.read(i));
+  }
+  EEPROM.end();
+  // read_eeprom = read_eeprom.c_str();
+  return atoi(read_eeprom.c_str());
 }

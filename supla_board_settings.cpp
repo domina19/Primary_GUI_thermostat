@@ -17,24 +17,29 @@
 #include "supla_eeprom.h"
 #include "supla_web_server.h"
 #include "supla_board_settings.h"
+#include "thermostat.h"
 
 extern "C" {
 #include "user_interface.h"
 }
 
-
-
 void supla_board_configuration(void) {
-//  if (Modul_tryb_konfiguracji == 2) return;
-  
-  MAX_GPIO = 6;
+  //  if (Modul_tryb_konfiguracji == 2) return;
   add_Relay_Button(VIRTUAL_PIN_THERMOSTAT_AUTO, PIN_BUTTON_AUTO, 1);
   SuplaDevice.addRelayButton(VIRTUAL_PIN_THERMOSTAT_MANUAL, PIN_BUTTON_MANUAL, 1, 0);
   SuplaDevice.addRelay(VIRTUAL_PIN_SET_TEMP);
   SuplaDevice.addDS18B20Thermometer();
   add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);
-  add_DS18B20Multi_Thermometer(PIN_THERMOMETR);
-  //add_DHT22_Thermometer(PIN_THERMOMETR);
+
+  if (thermostat.typeSensor == 0) {
+    if (MAX_DS18B20 == 1) {
+      add_DS18B20_Thermometer(PIN_THERMOMETR);
+    } else {
+      add_DS18B20Multi_Thermometer(PIN_THERMOMETR);
+    }
+  } else if (thermostat.typeSensor == 1) {
+    add_DHT22_Thermometer(PIN_THERMOMETR);
+  }
 
   add_Led_Config(LED_CONFIG_PIN);
   add_Config(CONFIG_PIN);

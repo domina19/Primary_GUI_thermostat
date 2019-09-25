@@ -7,9 +7,10 @@
 typedef struct {
   double temp;
   double hyst;
-  unsigned char upper_temp;
-  unsigned char lower_temp;
+  uint8_t humidity;
   uint8_t type;
+  uint8_t typeSensor;
+  uint8_t invertRelay;
   uint8_t channelDs18b20;
   uint8_t channelAuto;
   uint8_t channelManual;
@@ -22,10 +23,12 @@ typedef struct {
 extern _thermostat thermostat;
 
 void thermostat_start(void);
-void CheckTermostat(int channelNumber, double temp);
-void CheckTermostatWarming(int channelNumber, double temp);
-void CheckTermostatCooling(int channelNumber, double temp);
+void CheckTermostat(int channelNumber, double temp, double humidity);
+void CheckTermostatWarming(double temp);
+void CheckTermostatCooling(double temp);
+void CheckTermostatHumidity(double humidity);
 bool thermostatOFF();
 bool thermostatON();
+void valueChangeTemp();
 
 #endif //THERMOSTAT_H

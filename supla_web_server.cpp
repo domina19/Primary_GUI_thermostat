@@ -58,9 +58,21 @@ const char * Supported_Gpio[18] = {
   "BRAK"
 };
 
-const char * Supported_ThermostatType[2] = {
+const char * Supported_ThermostatType[4] = {
+  "Grzanie",
   "Chłodzenie",
-  "Grzanie"
+  "Wilgotność"
+};
+
+const char * Supported_SensorType[3] = {
+  "DS18B20",
+  "DHT22",
+  "BRAK"
+};
+
+const char * Supported_Invert_Relay[2] = {
+  "LOW",
+  "HIGH"
 };
 
 String supla_webpage_upddate(void) {
@@ -72,7 +84,7 @@ String supla_webpage_upddate(void) {
   content += "<style>body{font-size:14px;font-family:HelveticaNeue,'Helvetica Neue',HelveticaNeueRoman,HelveticaNeue-Roman,'Helvetica Neue Roman',TeXGyreHerosRegular,Helvetica,Tahoma,Geneva,Arial,sans-serif;font-weight:400;font-stretch:normal;background:" + String(gui_color) + ";color:#fff;line-height:20px;padding:0}.s{width:460px;margin:0 auto;margin-top:calc(50vh - 340px);border:solid 3px #fff;padding:0 10px 10px;border-radius:3px}#l{display:block;max-width:150px;height:155px;margin:-80px auto 20px;background:" + String(gui_color) + ";padding-right:5px}#l path{fill:#000}.w{margin:3px 0 16px;padding:5px 0;border-radius:3px;background:#fff;" + String(gui_box_shadow) + "}h1,h3{margin:10px 8px;font-family:HelveticaNeueLight,HelveticaNeue-Light,'Helvetica Neue Light',HelveticaNeue,'Helvetica Neue',TeXGyreHerosRegular,Helvetica,Tahoma,Geneva,Arial,sans-serif;font-weight:300;font-stretch:normal;color:#000;font-size:23px}h1{margin-bottom:14px;color:#fff}span{display:block;margin:10px 7px 14px}i{display:block;font-style:normal;position:relative;border-bottom:solid 1px " + String(gui_color) + ";height:42px}i:last-child{border:none}label{position:absolute;display:inline-block;top:0;left:8px;color:" + String(gui_color) + ";line-height:41px;pointer-events:none}input,select{width:calc(100% - 145px);border:none;font-size:16px;line-height:40px;border-radius:0;letter-spacing:-.5px;background:#fff;color:#000;padding-left:144px;-webkit-appearance:none;-moz-appearance:none;appearance:none;outline:0!important;height:40px}select{padding:0;float:right;margin:1px 3px 1px 2px}button{width:100%;border:0;background:#000;padding:5px 10px;font-size:16px;line-height:40px;color:#fff;border-radius:3px;" + String(gui_box_shadow) + ";cursor:pointer}.c{background:#ffe836;position:fixed;width:100%;line-height:80px;color:#000;top:0;left:0;" + String(gui_box_shadow) + ";text-align:center;font-size:26px;z-index:100}@media all and (max-height:920px){.s{margin-top:80px}}@media all and (max-width:900px){.s{width:calc(100% - 20px);margin-top:40px;border:none;padding:0 8px;border-radius:0}#l{max-width:80px;height:auto;margin:10px auto 20px}h1,h3{font-size:19px}i{border:none;height:auto}label{display:block;margin:4px 0 12px;color:" + String(gui_color) + ";font-size:13px;position:relative;line-height:18px}input,select{width:calc(100% - 10px);font-size:16px;line-height:28px;padding:0 5px;border-bottom:solid 1px " + String(gui_color) + "}select{width:100%;float:none;margin:0}}</style>";
   content += "<div class='s'>";
   content += getLogoSupla();
-  content += "<h1><center>" + String(read_supla_hostname().c_str()) + "</center></h1>";
+  content += "<h1><center>" + String(read_supla_hostname().c_str()) + " by krycha</center></h1>";
   content += "<div class='w'>";
   content += "<h3>Aktualizacja oprogramowania</h3>";
   content += "<br>";
@@ -83,6 +95,7 @@ String supla_webpage_upddate(void) {
   content += "</center>";
   content += "</div>";
   content += "<a href='/'><button>POWRÓT</button></a></div>";
+  content += "<a target='_blank' rel='noopener noreferrer' href='https://forum.supla.org/viewtopic.php?f=11&t=5276'><span style='color: #ffffff !important;'>https://forum.supla.org/</span></a>";
   content += "<br><br>";
 
   return content;
@@ -100,13 +113,13 @@ String supla_webpage_search(int save) {
   }
   content += "<div class='s'>";
   content += getLogoSupla();
-  content += "<h1><center>" + String(read_supla_hostname().c_str()) + "</center></h1>";
+  content += "<h1><center>" + String(read_supla_hostname().c_str()) + " by krycha</center></h1>";
   content += "<br>";
   content += "<center>";
-  if (nr_ds18b20 > 0) {
+  if (MAX_DS18B20 > 0) {
     content += "<div class='w'>";
     content += "<h3>Temperatura</h3>";
-    for (int i = 0; i < nr_ds18b20; i++) {
+    for (int i = 0; i < MAX_DS18B20; i++) {
       double temp = get_temperature(ds18b20[i].channel, 0);
 
       content += "<i><input name='ds18b20_id_";
@@ -131,7 +144,7 @@ String supla_webpage_search(int save) {
   content += "<h3>Znalezione DS18b20</h3>";
   numberOfDevices = sensor[0].getDeviceCount();
   if (numberOfDevices != 0) {
-    for (int i = 0; i < nr_ds18b20; i++) {
+    for (int i = 0; i < MAX_DS18B20; i++) {
       // Search the wire for address
       if ( sensor[i].getAddress(tempSensor, i) ) {
         content += "<i><input value='" + GetAddressToString(tempSensor) + "' length=";
@@ -149,6 +162,7 @@ String supla_webpage_search(int save) {
   content += "<button type='submit'>Zapisz znalezione DSy</button></form>";
   content += "<br>";
   content += "<a href='/'><button>Powrót</button></a></div>";
+  content += "<a target='_blank' rel='noopener noreferrer' href='https://forum.supla.org/viewtopic.php?f=11&t=5276'><span style='color: #ffffff !important;'>https://forum.supla.org/</span></a>";
   content += "<br><br>";
 
   return content;
@@ -172,7 +186,7 @@ String supla_webpage_start(int save) {
   content += "<script type='text/javascript'>setTimeout(function(){var element =  document.getElementById('msg');if ( element != null ) element.style.visibility = 'hidden';},3200);</script>";
   content += "<div class='s'>";
   content += getLogoSupla();
-  content += "<h1><center>" + String(read_supla_hostname().c_str()) + "</center></h1>";
+  content += "<h1><center>" + String(read_supla_hostname().c_str()) + " by krycha</center></h1>";
   content += "<font size='2'>STATUS: " + status_msg + "</font><br>";
   content += "<font size='2'>GUID:  " + read_guid() + "</font><br>";
   content += "<font size='2'>MAC:  " + my_mac_adress() + "</font><br>";
@@ -262,10 +276,10 @@ String supla_webpage_start(int save) {
   content += "<label>Hasło</label></i>";
   content += "</div>";
 
-  if (nr_ds18b20 > 0) {
+  if (MAX_DS18B20 > 0 && thermostat.typeSensor == 0) {
     content += "<div class='w'>";
     content += "<h3>Temperatura</h3>";
-    for (int i = 0; i < nr_ds18b20; i++) {
+    for (int i = 0; i < MAX_DS18B20; i++) {
       double temp = get_temperature(ds18b20[i].channel, 0);
       if (ds18b20[i].type == 1) {
         content += "<i><input name='ds18b20_id_";
@@ -289,10 +303,10 @@ String supla_webpage_start(int save) {
     }
     content += "</div>";
   }
-  if (nr_dht > 0 ) {
+  if (thermostat.typeSensor == 1) {
     content += "<div class='w'>";
-    content += "<h3>Temperatura i wilgotność:</h3>";
-    for (int i = 0; i < nr_dht; i++) {
+    content += "<h3>Temperatura i wilgotność</h3>";
+    for (int i = 0; i < 1; i++) {
       get_temperature_and_humidity(dht_channel[i], &temp_html, &humidity_html);
       content += "<i><label>";
       if (temp_html != -275) content += temp_html;
@@ -306,122 +320,165 @@ String supla_webpage_start(int save) {
     content += "</div>";
   }
 
+  if (Modul_tryb_konfiguracji != 0) {
+    if (nr_button > 0 || nr_relay > 0) {
+      content += "<div class='w'>";
+      content += "<h3>Ustawienia modułu</h3>";
+      /*if (nr_button > 0) {
+        for (int i = 1; i <= nr_button; ++i) {
+          content += "<i><label>Przycisk ";
+          content += i;
+          content += "</label><select name='button_set";
+          content += i;
+          content += "'>";
 
-  if (nr_button > 0 || nr_relay > 0) {
-    content += "<div class='w'>";
-    content += "<h3>Ustawienia modułu</h3>";
-    /*if (nr_button > 0) {
-      for (int i = 1; i <= nr_button; ++i) {
-        content += "<i><label>Przycisk ";
-        content += i;
-        content += "</label><select name='button_set";
-        content += i;
-        content += "'>";
-
-        for (int suported_button = 0; suported_button < 2; suported_button++) {
-          content += "<option value='";
-          content += suported_button;
-          int select_button = read_supla_button_type(i);
-          if (select_button == suported_button) {
-            content += "' selected>";
-          }
-          else content += "' >";
-          content += (Supported_Button[suported_button]);
-        }
-        content += "</select></i>";
-      }
-      }*/
-    if (nr_relay > 0) {
-      for (int i = 1; i <= nr_relay; ++i) {
-        byte v = digitalRead(relay_button_channel[i - 1].relay);
-        if (relay_button_channel[i - 1].invert == 1) v ^= 1;
-        content += "<i><label ";
-        content += ">Stan termostatu";
-        //content += i;
-        if (v == 1) content += " <font color='red' style='background-color:red'>##</font>";
-        content += "</label><select name='relay_set";
-        content += i;
-        content += "'>";
-        for (int suported_relay = 0; suported_relay < 2; suported_relay++) {
-          content += "<option value='";
-          content += suported_relay;
-          char select_relay = read_supla_relay_flag(i);
-          if (select_relay == suported_relay) {
-            content += "' selected>";
-          }
-          else content += "' >";
-          content += (Supported_RelayFlag[suported_relay]);
-        }
-        content += "</select></i>";
-      }
-    }
-    if (MAX_GPIO > 0) {
-      for (int i = 0; i < MAX_GPIO; ++i) {
-        if ( i == 0) {
-          content += "<i><label>Przekaźnik";
-        } else if (i == 1) {
-          content += "<i><label>Termometr";
-        } else if ( i == 2) {
-          content += "<i><label>Led config";
-        } else if ( i == 3) {
-          content += "<i><label>Przycisk config 5s";
-        } else if ( i == 4) {
-          content += "<i><label>Przycisk AUTO";
-        } else if ( i == 5) {
-          content += "<i><label>Przycisk MANUAL";
-        }
-        //content += i;
-        content += "</label><select name='gpio_set";
-        content += i;
-        content += "'>";
-
-        for (int suported_gpio = 0; suported_gpio < 18; suported_gpio++) {
-          if (Supported_Gpio[suported_gpio] != "") {
+          for (int suported_button = 0; suported_button < 2; suported_button++) {
             content += "<option value='";
-            content += suported_gpio;
-            int select_gpio = read_gpio(i);
-            if (select_gpio == suported_gpio) {
+            content += suported_button;
+            int select_button = read_supla_button_type(i);
+            if (select_button == suported_button) {
               content += "' selected>";
             }
             else content += "' >";
-            content += (Supported_Gpio[suported_gpio]);
+            content += (Supported_Button[suported_button]);
           }
+          content += "</select></i>";
+        }
+        }*/
+      if (nr_relay > 0) {
+        for (int i = 1; i <= nr_relay; ++i) {
+          byte v = digitalRead(relay_button_channel[i - 1].relay);
+          if (relay_button_channel[i - 1].invert == 1) v ^= 1;
+          content += "<i><label ";
+          content += ">Stan termostatu";
+          //content += i;
+          if (v == 1) content += " <font color='red' style='background-color:red'>##</font>";
+          content += "</label><select name='relay_set";
+          content += i;
+          content += "'>";
+          for (int suported_relay = 0; suported_relay < 2; suported_relay++) {
+            content += "<option value='";
+            content += suported_relay;
+            char select_relay = read_supla_relay_flag(i);
+            if (select_relay == suported_relay) {
+              content += "' selected>";
+            }
+            else content += "' >";
+            content += (Supported_RelayFlag[suported_relay]);
+          }
+          content += "</select></i>";
+        }
+
+        content += "<i><label>";
+        content += "Rodzaj przekaźnika";
+        content += "</label><select name='invert_relay'>";
+        for (int suported_invert_relay = 0; suported_invert_relay < 2; suported_invert_relay++) {
+          content += "<option value='";
+          content += suported_invert_relay;
+          int select_invert_relay = thermostat.invertRelay;
+          if (select_invert_relay == suported_invert_relay) {
+            content += "' selected>";
+          }
+          else content += "' >";
+          content += (Supported_Invert_Relay[suported_invert_relay]);
         }
         content += "</select></i>";
       }
+
+      if (MAX_GPIO > 0) {
+        for (int i = 0; i < MAX_GPIO; ++i) {
+          if ( i == 0) {
+            content += "<i><label>Przekaźnik";
+          } else if (i == 1) {
+            content += "<i><label>Termometr";
+          } else if ( i == 2) {
+            content += "<i><label>Led config";
+          } else if ( i == 3) {
+            content += "<i><label>Przycisk config 5s";
+          } else if ( i == 4) {
+            content += "<i><label>Przycisk AUTO";
+          } else if ( i == 5) {
+            content += "<i><label>Przycisk MANUAL";
+          }
+          //content += i;
+          content += "</label><select name='gpio_set";
+          content += i;
+          content += "'>";
+
+          for (int suported_gpio = 0; suported_gpio < 18; suported_gpio++) {
+            if (Supported_Gpio[suported_gpio] != "") {
+              content += "<option value='";
+              content += suported_gpio;
+              int select_gpio = read_gpio(i);
+              if (select_gpio == suported_gpio) {
+                content += "' selected>";
+              }
+              else content += "' >";
+              content += (Supported_Gpio[suported_gpio]);
+            }
+          }
+          content += "</select></i>";
+        }
+      }
+
+      content += "<i><label>";
+      content += "Rodzaj";
+      content += "</label><select name='sensor_type'>";
+      for (int suported_sensor_type = 0; suported_sensor_type < 3; suported_sensor_type++) {
+        content += "<option value='";
+        content += suported_sensor_type;
+        if (thermostat.typeSensor == suported_sensor_type) {
+          content += "' selected>";
+        }
+        else content += "' >";
+        content += (Supported_SensorType[suported_sensor_type]);
+      }
+      content += "</select></i>";
+
+      if (thermostat.typeSensor == 0) {
+        content += "<i><label>MAX DS18b20</label><input name='thermostat_max_ds' type='number' placeholder='0' step='1' min='1' max='8' value='" + String(MAX_DS18B20) + "'></i>";
+      }
+      content += "</div>";
     }
-    content += "<i><label>MAX DS18b20</label><input name='thermostat_max_ds' type='number' placeholder='0' step='1' min='1' max='8' value='" + String(read_thermostat_max_ds()) + "'></i>";
+  }
+  ////USTAWIENIA TERMOSTATU
+  if (thermostat.typeSensor != 2) {
+    content += "<div class='w'>";
+    content += "<h3>Ustawienia termostatu</h3>";
+    for (int i = 1; i <= nr_relay; ++i) {
+      content += "<i><label>";
+      content += "Rodzaj";
+      content += "</label><select name='thermostat_type'>";
+
+      int pom = 3;
+      if (thermostat.typeSensor == 0) pom = 2;
+
+      for (int suported_therm_type = 0; suported_therm_type < pom; suported_therm_type++) {
+        content += "<option value='";
+        content += suported_therm_type;
+        int select_relay = thermostat.type;
+        if (select_relay == suported_therm_type) {
+          content += "' selected>";
+        }
+        else content += "' >";
+        content += (Supported_ThermostatType[suported_therm_type]);
+      }
+      content += "</select></i>";
+    }
+    if (thermostat.type == 2) {
+      content += "<i><label>Wilgotność</label><input name='thermostat_humidity' type='number' placeholder='0' step='1' min='0' max='99' value='" + String(thermostat.humidity) + "'></i>";
+    } else {
+      content += "<i><label>Temperatura ON</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
+    }
+    content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(thermostat.hyst) + "'></i>";
+    if (thermostat.typeSensor == 0) {
+      content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channelDs18b20) + "'></i>";
+    }
     content += "</div>";
   }
-  content += "<div class='w'>";
-  content += "<h3>Ustawienia termostatu</h3>";
-  for (int i = 1; i <= nr_relay; ++i) {
-    content += "<i><label>";
-    content += "Rodzaj";
-    content += "</label><select name='thermostat_type'>";
-    for (int suported_therm_type = 0; suported_therm_type < 2; suported_therm_type++) {
-      content += "<option value='";
-      content += suported_therm_type;
-      int select_relay = read_thermostat_type();
-      if (select_relay == suported_therm_type) {
-        content += "' selected>";
-      }
-      else content += "' >";
-      content += (Supported_ThermostatType[suported_therm_type]);
-    }
-    content += "</select></i>";
-  }
-  content += "<i><label>Temperatura ON</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
-  content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(thermostat.hyst) + "'></i>";
-  if (nr_ds18b20 > 0) {
-    content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channelDs18b20) + "'></i>";
-  }
-  content += "</div>";
-
-
   content += "<button type='submit'>Zapisz</button></form>";
   content += "<br>";
-  if (nr_ds18b20 > 0) {
+  if ( thermostat.typeSensor == 0 ) {
     content += "<a href='/search'><button>Szukaj DS</button></a>";
     content += "<br><br>";
   }
@@ -432,7 +489,9 @@ String supla_webpage_start(int save) {
   content += "<br>";
   content += "<form method='post' action='reboot'>";
   content += "<button type='submit'>Restart</button></form></div>";
+  content += "<a target='_blank' rel='noopener noreferrer' href='https://forum.supla.org/viewtopic.php?f=11&t=5276'><span style='color: #ffffff !important;'>https://forum.supla.org/</span></a>";
   content += "<br><br>";
+
   return content;
 }
 
@@ -467,10 +526,11 @@ void status_func(int status, const char *msg) {
   static int lock;
   if (status == 17) {
     supla_led_blinking_stop();
+    valueChangeTemp();
     if (thermostat.last_state_auto == 0) supla_led_blinking(LED_CONFIG_PIN, 0);
     lock = 0;
   }
-  else if (status != 17 && lock == 0) {
+  else if (status != 17 && lock == 0 && Modul_tryb_konfiguracji == 0) {
     supla_led_blinking(LED_CONFIG_PIN, 500);
     lock = 1;
   }
