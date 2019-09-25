@@ -23,27 +23,23 @@ extern "C" {
 #include "user_interface.h"
 }
 
-
-
 void supla_board_configuration(void) {
+  //  if (Modul_tryb_konfiguracji == 2) return;
+  add_Relay_Button(VIRTUAL_PIN_THERMOSTAT_AUTO, PIN_BUTTON_AUTO, 1);
+  SuplaDevice.addRelayButton(VIRTUAL_PIN_THERMOSTAT_MANUAL, PIN_BUTTON_MANUAL, 1, 0);
+  SuplaDevice.addRelay(VIRTUAL_PIN_SET_TEMP);
+  SuplaDevice.addDS18B20Thermometer();
+  add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);
 
-  //add_Relay_Button(13, 0, CHOICE_TYPE);
-  //  add_Relay_Button_Invert(13, 12, CHOICE_TYPE);
-
-  add_Relay(VIRTUAL_PIN_THERMOSTAT);
-  //  add_Relay_Invert(5);
-
-  //  add_Roller_Shutter_Relays(5, 13) ;
-  //  add_Roller_Shutter_Buttons(0, 14, 12);
-  //  SuplaDevice.setRollerShutterFuncImpl(&supla_rs_SavePosition, &supla_rs_LoadPosition, &supla_rs_SaveSettings, &supla_rs_LoadSettings);
-
-    add_Sensor(VIRTUAL_PIN_SENSOR_THERMOSTAT);
-  //  add_Sensor(16);
-
-  add_DS18B20Multi_Thermometer(5);
-  //  add_DS18B20_Thermometer(2);
-  //  add_DHT11_Thermometer(12);
-  //  add_DHT22_Thermometer(4);
+  if (thermostat.typeSensor == 0) {
+    if (MAX_DS18B20 == 1) {
+      add_DS18B20_Thermometer(PIN_THERMOMETR);
+    } else {
+      add_DS18B20Multi_Thermometer(PIN_THERMOMETR);
+    }
+  } else if (thermostat.typeSensor == 1) {
+    add_DHT22_Thermometer(PIN_THERMOMETR);
+  }
 
   add_Led_Config(LED_CONFIG_PIN);
   add_Config(CONFIG_PIN);

@@ -1,4 +1,5 @@
 #include <DallasTemperature.h>
+#include "supla_eeprom.h"
 
 #ifndef SUPLA_SETTINGS_H
 #define SUPLA_SETTINGS_H
@@ -19,13 +20,28 @@
 #define  MAX_DHT               8
 
 //DS18B20 ************************************************************************************************
-#define  MAX_DS18B20            3 //maksymalnie 8
+
+extern uint8_t MAX_DS18B20; //maksymalnie 8
+#define MAX_DS18B20_ARR 8
 #define  TEMPERATURE_PRECISION  10  // rozdzielczość czujnika DS 9 -12 bit
 //LED CONFIG *********************************************************************************************
-#define LED_CONFIG_PIN         2
+extern uint8_t LED_CONFIG_PIN;
 //CONFIG PIN *********************************************************************************************
-#define CONFIG_PIN             0 //D3     // triger config
+extern uint8_t CONFIG_PIN; //D3     // triger config
+//GPIO
+#define MAX_GPIO 6
+//THERMOSTAT**********************************************************************************************
+extern uint8_t PIN_BUTTON_AUTO;
+extern uint8_t PIN_BUTTON_MANUAL;
+extern uint8_t PIN_THERMOSTAT;
+extern uint8_t PIN_THERMOMETR;
+#define VIRTUAL_PIN_THERMOSTAT_AUTO 99
+#define VIRTUAL_PIN_THERMOSTAT_MANUAL 98
+#define VIRTUAL_PIN_SENSOR_THERMOSTAT 97
+#define VIRTUAL_PIN_SET_TEMP 96
+#define VIRTUAL_PIN_THERMOMETR 95
 
+extern double save_temp;
 //EEPROM *************************************************************************************************
 #define EEPROM_SIZE           4096/4
 
@@ -40,7 +56,10 @@
 #define  MAX_HOSTNAME        32
 #define  MAX_BUTTON          16
 #define  MAX_RELAY           16
-#define  MAX_DS18B20_SIZE    16
+#define  MAX_RELAY_STATE     16
+#define  MAX_DS18B20_EEPROM  16
+#define  MAX_DS18B20_SIZE    128
+#define  MAX_GPIO_SIZE       16
 
 #define  GUI_BLUE              "#005c96"
 #define  GUI_GREEN             "#00D151"
@@ -59,15 +78,14 @@ typedef struct {
 
 } _ds18b20_t;
 extern _ds18b20_t ds18b20[];
-extern char GUID[SUPLA_GUID_SIZE];
+extern char GUID[];
 String read_rssi(void);
 void supla_led_blinking(int led, int time);
 void supla_led_blinking_stop(void);
 
 
 void add_Sensor(int sensor);
-void add_Roller_Shutter_Buttons(int channel, int button1, int button2);
-void add_Roller_Shutter_Relays(int relay1, int relay2);
+void add_SensorNO(int sensor);
 void add_Led_Config(int led);
 void add_Config(int pin);
 void add_Relay(int relay);
