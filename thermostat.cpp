@@ -39,13 +39,17 @@ void thermostat_start() {
 }
 
 void CheckTermostat(int channelNumber, double temp, double humidity) {
-  if (channelNumber == thermostat.channelDs18b20 && thermostat.last_state_auto) {
-    if (thermostat.type == 0) {
-      CheckTermostatWarming(temp);
-    } else if (thermostat.type == 1) {
-      CheckTermostatCooling(temp);
-    } else if (thermostat.type == 2) {
-      CheckTermostatHumidity(humidity);
+  if (thermostat.last_state_auto) {
+    if (channelNumber == thermostat.channelDs18b20 || thermostat.typeSensor == 1) {
+      if (thermostat.type == 0 ) {
+        Serial.print("channel-"); Serial.print(channelNumber);
+        CheckTermostatWarming(temp);
+      } else if (thermostat.type == 1) {
+        Serial.print("channel-"); Serial.print(channelNumber);
+        CheckTermostatCooling(temp);
+      } else if (thermostat.type == 2) {
+        CheckTermostatHumidity(humidity);
+      }
     }
   }
 }
@@ -61,7 +65,7 @@ void CheckTermostatWarming(double temp) {
     }
     return;
   }
-  Serial.print("Grzanie - pomiar "); Serial.println(temp);
+  Serial.print("->Grzanie-pomiar "); Serial.println(temp);
 
   pom = thermostat.temp + thermostat.hyst ;
 
@@ -89,7 +93,7 @@ void CheckTermostatCooling(double temp) {
     }
     return;
   }
-  Serial.print("Chłodzenie - pomiar: "); Serial.println(temp);
+  Serial.print("->Chłodzenie-pomiar "); Serial.println(temp);
 
   pom = thermostat.temp - thermostat.hyst ;
 

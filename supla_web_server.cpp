@@ -71,8 +71,8 @@ const char * Supported_SensorType[3] = {
 };
 
 const char * Supported_Invert_Relay[2] = {
-  "LOW",
-  "HIGH"
+  "HIGH",
+  "LOW"
 };
 
 String supla_webpage_upddate(void) {

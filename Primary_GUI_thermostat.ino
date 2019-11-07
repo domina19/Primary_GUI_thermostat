@@ -69,7 +69,6 @@ const char* Config_Wifi_pass = CONFIG_WIFI_PASSWORD;
 
 unsigned long check_delay_WiFi = 50000;
 unsigned long wait_for_WiFi;
-byte status_WiFi = 0;
 
 //CONFIG
 int config_state = HIGH;
@@ -104,6 +103,7 @@ OneWire ds18x20[MAX_DS18B20_ARR] = 0;
 //const int oneWireCount = sizeof(ds18x20) / sizeof(OneWire);
 DallasTemperature sensor[MAX_DS18B20_ARR];
 int channelNumberDS18B20 = 0;
+int channelNumberDHT = 0;
 
 //SUPLA ****************************************************************************************************
 
@@ -184,6 +184,11 @@ void setup() {
   supla_ds18b20_start();
   supla_dht_start();
 
+  String supla_hostname = read_supla_hostname().c_str();
+  supla_hostname.replace(" ", "-");
+  WiFi.hostname(supla_hostname);
+  WiFi.setOutputPower(20.5);
+
   SuplaDevice.setStatusFuncImpl(&status_func);
   SuplaDevice.setDigitalReadFuncImpl(&supla_DigitalRead);
   SuplaDevice.setDigitalWriteFuncImpl(&supla_DigitalWrite);
@@ -217,7 +222,7 @@ void loop() {
   }
 
 
-  if (Modul_tryb_konfiguracji != 2) {
+  if (Modul_tryb_konfiguracji == 0) {
     SuplaDevice.iterate();
   }
 
@@ -405,7 +410,7 @@ void createWebServer() {
             String address = httpServer.arg(ds);
             save_DS18b20_address(address, i);
             ds18b20[i].address = address;
-            read_DS18b20_address(i);
+            //read_DS18b20_address(i);
           }
         }
       }
@@ -420,29 +425,28 @@ void createWebServer() {
       thermostat.typeSensor = httpServer.arg("sensor_type").toInt();
       save_type_sensor(thermostat.typeSensor);
 
-      PIN_THERMOMETR = read_gpio(1);
+      //PIN_THERMOMETR = read_gpio(1);
       if (thermostat.typeSensor == 0) {
         MAX_DS18B20 = httpServer.arg("thermostat_max_ds").toInt();
         if (MAX_DS18B20 != 0) save_thermostat_max_ds(MAX_DS18B20);
-
-
-        if (MAX_DS18B20 > 1)
+      }
+      /*if (MAX_DS18B20 > 1)
         {
-          for (int i = 0; i < MAX_DS18B20; i++) {
-            ds18x20[i] = PIN_THERMOMETR;
-            ds18b20[i].pin = PIN_THERMOMETR;
-            ds18b20[i].channel = i;
-            ds18b20[i].type = 1;
-          }
+        for (int i = 0; i < MAX_DS18B20; i++) {
+          ds18x20[i] = PIN_THERMOMETR;
+          ds18b20[i].pin = PIN_THERMOMETR;
+          ds18b20[i].channel = i;
+          ds18b20[i].type = 1;
+        }
         } else {
-          ds18b20[0].type = 0;
+        ds18b20[0].type = 0;
         }
 
         supla_ds18b20_start();
-      } else {
+        } else {
         dht_sensor[0] = { PIN_THERMOMETR, DHT22 };
         supla_dht_start();
-      }
+        }*/
 
       thermostat.invertRelay = httpServer.arg("invert_relay").toInt();
       save_invert_relay(thermostat.invertRelay);
@@ -554,7 +558,6 @@ void WiFi_up() {
 
     supla_led_blinking(LED_CONFIG_PIN, 500);
     WiFi.disconnect(true);
-    WiFi.hostname(String(read_supla_hostname().c_str()));
     String esid = String(read_wifi_ssid().c_str());
     String epass = String(read_wifi_pass().c_str());
     Serial.println("WiFi init ");
@@ -614,8 +617,10 @@ String read_rssi(void) {
 }
 
 void get_temperature_and_humidity(int channelNumber, double * temp, double * humidity) {
-  *temp = dht_sensor[channelNumber].readTemperature();
-  *humidity = dht_sensor[channelNumber].readHumidity();
+  int i = channelNumber - channelNumberDHT;
+  *temp = dht_sensor[i].readTemperature();
+  *humidity = dht_sensor[i].readHumidity();
+
   //  static uint8_t error;
   // Serial.print("get_temperature_and_humidity - "); Serial.print(channelNumber); Serial.print(" -- "); Serial.print(*temp); Serial.print(" -- "); Serial.println(*humidity);
   if ( isnan(*temp) || isnan(*humidity) ) {
@@ -624,7 +629,7 @@ void get_temperature_and_humidity(int channelNumber, double * temp, double * hum
     //    error++;
   }
   //THERMOSTAT
-  CheckTermostat(0, *temp, *humidity);
+  CheckTermostat(-1, *temp, *humidity);
   //  Serial.print("error - "); Serial.println(error);
 }
 
@@ -632,26 +637,29 @@ double get_temperature(int channelNumber, double last_val) {
   double t = -275;
 
   int i = channelNumber - channelNumberDS18B20;
+
   if ( sensor[i].getDeviceCount() > 0 ) {
-    if ( ds18b20[i].address != "FFFFFFFFFFFFFFFF" || ds18b20[i].type == 0) {
-      if ( millis() - ds18b20[i].lastTemperatureRequest < 0) {
-        ds18b20[i].lastTemperatureRequest = millis();
-      }
+    if ( ds18b20[i].address == "FFFFFFFFFFFFFFFF" ) return -275;
+    if ( millis() - ds18b20[i].lastTemperatureRequest < 0) {
+      ds18b20[i].lastTemperatureRequest = millis();
+    }
 
-      if (ds18b20[i].TemperatureRequestInProgress == false) {
-        sensor[i].requestTemperaturesByAddress(ds18b20[i].deviceAddress);
+    if (ds18b20[i].TemperatureRequestInProgress == false) {
+      sensor[i].requestTemperaturesByAddress(ds18b20[i].deviceAddress);
+      ds18b20[i].TemperatureRequestInProgress = true;
+    }
 
-        ds18b20[i].TemperatureRequestInProgress = true;
-      }
-
-      if ( millis() - ds18b20[i].lastTemperatureRequest > 750) {
+    if ( millis() - ds18b20[i].lastTemperatureRequest > 1000) {
+      if ( ds18b20[i].type == 0 ) {
+        sensor[i].requestTemperatures();
+        t = sensor[i].getTempCByIndex(0);
+      } else {
         t = sensor[i].getTempC(ds18b20[i].deviceAddress);
-        if (t == -127) t = -275;
-        ds18b20[i].lastTemperatureRequest = millis();
-        ds18b20[i].TemperatureRequestInProgress = false;
       }
-    } else {
-      t = -275;
+
+      if (t == -127) t = -275;
+      ds18b20[i].lastTemperatureRequest = millis();
+      ds18b20[i].TemperatureRequestInProgress = false;
     }
     //THERMOSTAT
     CheckTermostat(i, t, 0);
@@ -695,7 +703,7 @@ void supla_ds18b20_start(void) {
       sensor[i].setOneWire(&ds18x20[i]);
       sensor[i].begin();
 
-      if (ds18b20[i].type == 0) {
+      /*if (ds18b20[i].type == 0) {
         DeviceAddress deviceAddress;
         if (sensor[i].getAddress(deviceAddress, 0)) {
           ds18b20[i].address = GetAddressToString(deviceAddress);
@@ -704,7 +712,7 @@ void supla_ds18b20_start(void) {
         } else {
           Serial.println("Nie znaleziono DSa");
         }
-      }
+        }*/
       sensor[i].setResolution(ds18b20[i].deviceAddress, TEMPERATURE_PRECISION);
     }
   }
@@ -755,7 +763,8 @@ void add_DHT11_Thermometer(int thermpin) {
 
 void add_DHT22_Thermometer(int thermpin) {
   int channel = SuplaDevice.addDHT22();
-  dht_sensor[channel] = { thermpin, DHT22 };
+  channelNumberDHT = channel;
+  dht_sensor[nr_dht] = { thermpin, DHT22 };
   dht_channel[nr_dht] = channel;
   nr_dht++;
 }

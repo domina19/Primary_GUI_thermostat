@@ -40,7 +40,7 @@ void supla_board_configuration(void) {
   } else if (thermostat.typeSensor == 1) {
     add_DHT22_Thermometer(PIN_THERMOMETR);
   }
-
+  // add_DHT22_Thermometer(14);
   add_Led_Config(LED_CONFIG_PIN);
   add_Config(CONFIG_PIN);
 
