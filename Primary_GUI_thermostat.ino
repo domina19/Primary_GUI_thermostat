@@ -638,7 +638,7 @@ double get_temperature(int channelNumber, double last_val) {
 
   int i = channelNumber - channelNumberDS18B20;
 
-  if ( sensor[i].getDeviceCount() > 0 ) {
+  if ( i >= 0 ) {
     if ( ds18b20[i].address == "FFFFFFFFFFFFFFFF" ) return -275;
     if ( millis() - ds18b20[i].lastTemperatureRequest < 0) {
       ds18b20[i].lastTemperatureRequest = millis();
