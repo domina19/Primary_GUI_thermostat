@@ -289,12 +289,10 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
     if (val) {
       thermostat.last_state_manual = 0;
       SuplaDevice.channelValueChanged(thermostat.channelManual, 0);
-      supla_led_blinking_stop();
     } else  {
       thermostatOFF();
-      supla_led_blinking(LED_CONFIG_PIN, 0);
     }
-
+    digitalWrite(LED_CONFIG_PIN, val);
     thermostat.last_state_auto = val;
     return;
   }
@@ -308,7 +306,7 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
     return;
   }
 
-  if ( pin == VIRTUAL_PIN_SET_TEMP  ) {
+  if ( pin == VIRTUAL_PIN_SET_TEMP ) {
     if (thermostat.type == 2) {
       val ? thermostat.humidity += 1 : thermostat.humidity -= 1;
     } else {
