@@ -30,7 +30,7 @@ void thermostat_start() {
   thermostat.channelManual = 1;
   thermostat.channelSensor = 4;
   thermostat.error = 0;
-  thermostat.last_state_auto = 0;
+  thermostat.last_state_auto = 1;
   thermostat.last_state_manual = 0;
   thermostat.last_set_temp = 0;
 

@@ -38,23 +38,23 @@ const char * Supported_RelayFlag[2] = {
 };
 
 const char * Supported_Gpio[18] = {
-  "GPIO0",
-  "GPIO1",
-  "GPIO2",
-  "GPIO3",
-  "GPIO4",
-  "GPIO5",
+  "GPIO0 (D3)",
+  "GPIO1 (TX)",
+  "GPIO2 (D4)",
+  "GPIO3 (RX)",
+  "GPIO4 (D2)",
+  "GPIO5 (D1)",
   "",
   "",
   "",
-  "GPIO9",
-  "GPIO10",
+  "GPIO9 (FL-ESP8285)",
+  "GPIO10 (FL-ESP8285)",
   "",
-  "GPIO12",
-  "GPIO13",
-  "GPIO14",
-  "GPIO15",
-  "GPIO16",
+  "GPIO12 (D6)",
+  "GPIO13 (D7)",
+  "GPIO14 (D5)",
+  "GPIO15 (D8)",
+  "GPIO16 (D0)",
   "BRAK"
 };
 
