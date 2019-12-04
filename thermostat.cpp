@@ -32,7 +32,7 @@ void thermostat_start() {
   thermostat.error = 0;
   thermostat.last_state_auto = 1;
   thermostat.last_state_manual = 0;
-  thermostat.last_set_temp = 0;
+  thermostat.last_set_temp;
 
   thermostatOFF();
   pinMode(PIN_THERMOSTAT, OUTPUT);

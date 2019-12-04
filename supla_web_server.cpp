@@ -32,9 +32,11 @@ const char * Supported_Button[2] = {
   "Monostabilny"
 };
 
-const char * Supported_RelayFlag[2] = {
+const char * Supported_RelayFlag[4] = {
   "Reset",
-  "Pamiętaj stan"
+  "Pamiętaj stan",
+  "Włączony",
+  "Wyłączony"
 };
 
 const char * Supported_Gpio[18] = {
@@ -356,7 +358,7 @@ String supla_webpage_start(int save) {
           content += "</label><select name='relay_set";
           content += i;
           content += "'>";
-          for (int suported_relay = 0; suported_relay < 2; suported_relay++) {
+          for (int suported_relay = 0; suported_relay < 4; suported_relay++) {
             content += "<option value='";
             content += suported_relay;
             char select_relay = read_supla_relay_flag(i);

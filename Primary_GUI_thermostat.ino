@@ -126,6 +126,11 @@ void setup() {
     save_guid();
   }
 
+  SuplaDevice.setStatusFuncImpl(&status_func);
+  SuplaDevice.setDigitalReadFuncImpl(&supla_DigitalRead);
+  SuplaDevice.setDigitalWriteFuncImpl(&supla_DigitalWrite);
+  SuplaDevice.setTimerFuncImpl(&supla_timer);
+
   PIN_THERMOSTAT = read_gpio(0);
   PIN_THERMOMETR = read_gpio(1);
   LED_CONFIG_PIN = read_gpio(2);
@@ -189,10 +194,6 @@ void setup() {
   WiFi.hostname(supla_hostname);
   WiFi.setOutputPower(20.5);
 
-  SuplaDevice.setStatusFuncImpl(&status_func);
-  SuplaDevice.setDigitalReadFuncImpl(&supla_DigitalRead);
-  SuplaDevice.setDigitalWriteFuncImpl(&supla_DigitalWrite);
-  SuplaDevice.setTimerFuncImpl(&supla_timer);
   SuplaDevice.setName(read_supla_hostname().c_str());
 
 
