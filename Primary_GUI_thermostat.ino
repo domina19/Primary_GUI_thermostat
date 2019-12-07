@@ -1,15 +1,3 @@
-
-/* *************************************************************************
-
-   Dzieki kolegom @wojtas567 i @Duch__ powstała ta wersja.
-
-
-   Wszystkie potrzebne modyfikacja znajdują się w pliku "supla_settings.h"
-
- * *************************************************************************
-*/
-
-
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
@@ -87,16 +75,10 @@ ETSTimer led_timer;
 
 // Setup a DHT instance
 //DHT dht(DHTPIN, DHTTYPE);
-DHT dht_sensor[MAX_DHT] = {
   { -1, -1 },
   { -1, -1 },
   { -1, -1 },
-  { -1, -1 },
-  { -1, -1 },
-  { -1, -1 },
-  { -1, -1 },
-  { -1, -1 },
-};
+DHT *dht_sensor;
 
 // Setup a DS18B20 instance
 OneWire ds18x20[MAX_DS18B20_ARR] = 0;
@@ -131,43 +113,11 @@ void setup() {
   SuplaDevice.setDigitalWriteFuncImpl(&supla_DigitalWrite);
   SuplaDevice.setTimerFuncImpl(&supla_timer);
 
-  PIN_THERMOSTAT = read_gpio(0);
-  PIN_THERMOMETR = read_gpio(1);
-  LED_CONFIG_PIN = read_gpio(2);
-  CONFIG_PIN = read_gpio(3);
-
-  int val_button_auto = read_gpio(4);
-  PIN_BUTTON_AUTO = (val_button_auto == 16 ? -1 : val_button_auto);
-
-  int val_button_manual = read_gpio(5);
-  PIN_BUTTON_MANUAL = (val_button_manual == 16 ? -1 : val_button_manual);
-
   thermostat_start();
-
   supla_board_configuration();
-
-  if (drd.detectDoubleReset()) {
-    drd.stop();
-    gui_color = GUI_GREEN;
-    Modul_tryb_konfiguracji = 2;
-    Tryb_konfiguracji();
-  }
-  else gui_color = GUI_BLUE;
-
-  delay(5000);
-  drd.stop();
-
-  String www_username1 = String(read_login().c_str());
-  String www_password1 = String(read_login_pass().c_str());
-
-  www_password = strcpy((char*)malloc(www_password1.length() + 1), www_password1.c_str());
-  www_username = strcpy((char*)malloc(www_username1.length() + 1), www_username1.c_str());
-
-  //Pokaz_zawartosc_eeprom();
-  read_guid();
-  int Location_id = read_supla_id().toInt();
-  strcpy(Supla_server, read_supla_server().c_str());
-  strcpy(Location_Pass, read_supla_pass().c_str());
+  supla_ds18b20_start();
+  supla_dht_start();
+  supla_start();
 
   if (String(read_wifi_ssid().c_str()) == 0
       || String(read_wifi_pass().c_str()) == 0
@@ -183,49 +133,37 @@ void setup() {
     Tryb_konfiguracji();
   }
 
-  read_guid();
-  my_mac_adress();
+  if (drd.detectDoubleReset()) {
+    drd.stop();
+    gui_color = GUI_GREEN;
+    Modul_tryb_konfiguracji = 2;
+    Tryb_konfiguracji();
+  }
+  else gui_color = GUI_BLUE;
 
-  supla_ds18b20_start();
-  supla_dht_start();
+  delay(5000);
+  drd.stop();
 
-  String supla_hostname = read_supla_hostname().c_str();
-  supla_hostname.replace(" ", "-");
-  WiFi.hostname(supla_hostname);
-  WiFi.setOutputPower(20.5);
-
-  SuplaDevice.setName(read_supla_hostname().c_str());
-
-
-  SuplaDevice.begin(GUID,              // Global Unique Identifier
-                    mac,               // Ethernet MAC address
-                    Supla_server,  // SUPLA server address
-                    Location_id,                 // Location ID
-                    Location_Pass);
+  //Pokaz_zawartosc_eeprom();
 
   Serial.println();
   Serial.println("Uruchamianie serwera...");
 
   createWebServer();
-
-  httpUpdater.setup(&httpServer, UPDATE_PATH, www_username, www_password);
-  httpServer.begin();
-
 }
 
 //*********************************************************************************************************
 
 void loop() {
-  if (WiFi.status() != WL_CONNECTED && Modul_tryb_konfiguracji == 0) {
+  if (WiFi.status() != WL_CONNECTED) {
     WiFi_up();
   } else {
     httpServer.handleClient();
   }
 
-
-  if (Modul_tryb_konfiguracji == 0) {
-    SuplaDevice.iterate();
-  }
+  // if (Modul_tryb_konfiguracji == 0) {
+  SuplaDevice.iterate();
+  // }
 
 }
 //*********************************************************************************************************
@@ -308,7 +246,7 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
   }
 
   if ( pin == VIRTUAL_PIN_SET_TEMP ) {
-    if (thermostat.type == 2) {
+    if (thermostat.type == THERMOSTAT_HUMIDITY) {
       val ? thermostat.humidity += 1 : thermostat.humidity -= 1;
     } else {
       val ? thermostat.temp += 0.5 : thermostat.temp -= 0.5;
@@ -324,7 +262,7 @@ void supla_DigitalWrite(int channelNumber, uint8_t pin, uint8_t val) {
 void supla_timer() {
   //ZAPIS TEMP DO EEPROMA*************************************************************************************
   if ( eeprom_millis < millis() ) {
-    if (thermostat.type == 2 && save_temp != thermostat.humidity) {
+    if (thermostat.type == THERMOSTAT_HUMIDITY && save_temp != thermostat.humidity) {
       save_thermostat_humidity(thermostat.humidity);
       Serial.println("zapisano wartość wilgotnośći");
     } else if (thermostat.type != 2 && save_temp != thermostat.temp ) {
@@ -332,7 +270,7 @@ void supla_timer() {
       Serial.println("zapisano temperaturę");
     }
 
-    thermostat.type == 2 ? save_temp =  thermostat.humidity : save_temp = thermostat.temp;
+    thermostat.type == THERMOSTAT_HUMIDITY ? save_temp =  thermostat.humidity : save_temp = thermostat.temp;
 
     valueChangeTemp();
     eeprom_millis = millis() + 10000;
@@ -362,6 +300,12 @@ SuplaDeviceCallbacks supla_arduino_get_callbacks(void) {
 //*********************************************************************************************************
 
 void createWebServer() {
+
+  String www_username1 = String(read_login().c_str());
+  String www_password1 = String(read_login_pass().c_str());
+
+  www_password = strcpy((char*)malloc(www_password1.length() + 1), www_password1.c_str());
+  www_username = strcpy((char*)malloc(www_username1.length() + 1), www_username1.c_str());
 
   httpServer.on("/", []() {
     if (Modul_tryb_konfiguracji == 0) {
@@ -401,18 +345,7 @@ void createWebServer() {
           save_supla_relay_flag(i, httpServer.arg(relay));
         }
       }
-      if (MAX_DS18B20 > 0) {
-        for (int i = 0; i < MAX_DS18B20; i++) {
-          if (ds18b20[i].type == 1) {
-            String ds = "ds18b20_id_";
-            ds += i;
-            String address = httpServer.arg(ds);
-            save_DS18b20_address(address, i);
-            ds18b20[i].address = address;
-            //read_DS18b20_address(i);
-          }
-        }
-      }
+
       if (MAX_GPIO > 0 ) {
         for (int i = 0; i < MAX_GPIO; ++i) {
           String gpio = "gpio_set";
@@ -424,50 +357,76 @@ void createWebServer() {
       thermostat.typeSensor = httpServer.arg("sensor_type").toInt();
       save_type_sensor(thermostat.typeSensor);
 
-      //PIN_THERMOMETR = read_gpio(1);
-      if (thermostat.typeSensor == 0) {
-        MAX_DS18B20 = httpServer.arg("thermostat_max_ds").toInt();
-        if (MAX_DS18B20 != 0) save_thermostat_max_ds(MAX_DS18B20);
+      if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
+        String max_ds = httpServer.arg("thermostat_max_ds");
+        if (max_ds != NULL) {
+          MAX_DS18B20 = max_ds.toInt();
+          save_thermostat_max_ds(MAX_DS18B20);
+        }
       }
-      /*if (MAX_DS18B20 > 1)
-        {
-        for (int i = 0; i < MAX_DS18B20; i++) {
-          ds18x20[i] = PIN_THERMOMETR;
-          ds18b20[i].pin = PIN_THERMOMETR;
-          ds18b20[i].channel = i;
-          ds18b20[i].type = 1;
-        }
-        } else {
-        ds18b20[0].type = 0;
-        }
-
-        supla_ds18b20_start();
-        } else {
-        dht_sensor[0] = { PIN_THERMOMETR, DHT22 };
-        supla_dht_start();
-        }*/
 
       thermostat.invertRelay = httpServer.arg("invert_relay").toInt();
       save_invert_relay(thermostat.invertRelay);
     }
 
-    if (thermostat.type == 0 || thermostat.type == 1) {
+    if (MAX_DS18B20 > 0) {
+      for (int i = 0; i < MAX_DS18B20; i++) {
+        if (ds18b20[i].type == 1) {
+          String ds = "ds18b20_id_";
+          ds += i;
+          String address = httpServer.arg(ds);
+          if (address != NULL) {
+            save_DS18b20_address(address, i);
+            ds18b20[i].address = address;
+            read_DS18b20_address(i);
+          }
+        }
+      }
+    }
+
+    if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
+      if (MAX_DS18B20 > 1) {
+
+        for (int i = 0; i < MAX_DS18B20; i++) {
+          ds18x20[i] = PIN_THERMOMETR;
+          ds18b20[i].pin = PIN_THERMOMETR;
+          ds18b20[i].type = 1;
+          ds18b20[i].channel = (5 + i);
+        }
+        nr_ds18b20 = MAX_DS18B20;
+      } else {
+        ds18b20[0].type = 0;
+        nr_ds18b20 = 1;
+      }
+
+      supla_ds18b20_start();
+    } else {
+      dht_sensor = (DHT*)realloc(dht_sensor, sizeof(DHT) * 1);
+      dht_sensor[0] = { PIN_THERMOMETR, DHT22 };
+
+      nr_dht = 1;
+      supla_dht_start();
+    }
+
+    thermostat.type = httpServer.arg("thermostat_type").toInt();
+    save_thermostat_type(thermostat.type);
+
+    if (thermostat.type == THERMOSTAT_WARMING || thermostat.type == THERMOSTAT_COOLLING) {
       thermostat.temp = httpServer.arg("thermostat_temp").toFloat();
       save_thermostat_temp(thermostat.temp);
     }
-    if (thermostat.type == 2) {
+    if (thermostat.type == THERMOSTAT_HUMIDITY) {
       thermostat.humidity = httpServer.arg("thermostat_humidity").toInt();
       save_thermostat_humidity(thermostat.humidity);
     }
 
-    if (thermostat.typeSensor == 0) {
+    if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
       thermostat.channelDs18b20 = httpServer.arg("thermostat_channel").toInt();
       save_thermostat_channel(thermostat.channelDs18b20);
     }
 
-    thermostat.type = httpServer.arg("thermostat_type").toInt();
+
     thermostat.hyst = httpServer.arg("thermostat_hist").toFloat();
-    save_thermostat_type(thermostat.type);
     save_thermostat_hyst(thermostat.hyst);
 
     httpServer.send(200, "text/html", supla_webpage_start(1));
@@ -498,7 +457,20 @@ void createWebServer() {
       if (!httpServer.authenticate(www_username, www_password))
         return httpServer.requestAuthentication();
     }
-    SetupDS18B20Multi();
+    //SetupDS18B20Multi();
+    if (MAX_DS18B20 > 0) {
+      for (int i = 0; i < MAX_DS18B20; i++) {
+        String ds = "ds18b20_id_";
+        ds += i;
+        String address = httpServer.arg(ds);
+        if (address != NULL) {
+          save_DS18b20_address(address, i);
+          ds18b20[i].address = address;
+          read_DS18b20_address(i);
+        }
+      }
+    }
+
     httpServer.send(200, "text/html", supla_webpage_search(1));
   });
   httpServer.on("/search", []() {
@@ -516,6 +488,19 @@ void createWebServer() {
     czyszczenieEeprom();
     httpServer.send(200, "text/html", supla_webpage_start(3));
   });
+
+  httpServer.on("/konfiguracja", []() {
+    if (Modul_tryb_konfiguracji == 0) {
+      if (!httpServer.authenticate(www_username, www_password))
+        return httpServer.requestAuthentication();
+    }
+    gui_color = GUI_GREEN;
+    Modul_tryb_konfiguracji = 1;
+    httpServer.send(200, "text/html", supla_webpage_start(4));
+  });
+
+  httpUpdater.setup(&httpServer, UPDATE_PATH, www_username, www_password);
+  httpServer.begin();
 }
 
 //****************************************************************************************************************************************
@@ -539,14 +524,13 @@ void Tryb_konfiguracji() {
   Serial.println("Start Serwera");
 
   if (Modul_tryb_konfiguracji == 2) {
-    thermostat_start();
-    supla_ds18b20_start();
-    supla_dht_start();
-
     while (1) {
-      httpServer.handleClient();
+      if (WiFi.status() != WL_CONNECTED) {
+        WiFi_up();
+      }
 
-      //    SuplaDevice.iterate();
+      SuplaDevice.iterate();
+      httpServer.handleClient();
     }
   }
 }
@@ -555,8 +539,11 @@ void WiFi_up() {
   if ( WiFi.status() != WL_CONNECTED
        && millis() >= wait_for_WiFi ) {
 
-    supla_led_blinking(LED_CONFIG_PIN, 500);
-    WiFi.disconnect(true);
+    if (Modul_tryb_konfiguracji == 0) {
+      WiFi.mode(WIFI_STA);
+      supla_led_blinking(LED_CONFIG_PIN, 500);
+      WiFi.disconnect(true);
+    }
     String esid = String(read_wifi_ssid().c_str());
     String epass = String(read_wifi_pass().c_str());
     Serial.println("WiFi init ");
@@ -565,7 +552,6 @@ void WiFi_up() {
     Serial.print("PASSWORD: ");
     Serial.println(epass);
 
-    WiFi.mode(WIFI_STA);
     WiFi.begin(esid.c_str(), epass.c_str());
 
     wait_for_WiFi = millis() + check_delay_WiFi;
@@ -606,8 +592,35 @@ void first_start(void) {
   save_thermostat_type(0); //grzanie
   save_thermostat_max_ds(1);
   save_type_sensor(0);
-  save_thermostat_max_ds(0);
   save_invert_relay(0);
+
+  save_thermostat_humidity(50);
+  save_thermostat_temp(20);
+}
+
+void supla_start() {
+  read_guid();
+  int Location_id = read_supla_id().toInt();
+  strcpy(Supla_server, read_supla_server().c_str());
+  strcpy(Location_Pass, read_supla_pass().c_str());
+
+  read_guid();
+  my_mac_adress();
+
+  String supla_hostname = read_supla_hostname().c_str();
+  supla_hostname.replace(" ", "-");
+  WiFi.hostname(supla_hostname);
+  WiFi.setOutputPower(20.5);
+
+  SuplaDevice.setName(read_supla_hostname().c_str());
+
+
+  SuplaDevice.begin(GUID,              // Global Unique Identifier
+                    mac,               // Ethernet MAC address
+                    Supla_server,  // SUPLA server address
+                    Location_id,                 // Location ID
+                    Location_Pass);
+
 }
 
 String read_rssi(void) {
@@ -616,28 +629,31 @@ String read_rssi(void) {
 }
 
 void get_temperature_and_humidity(int channelNumber, double * temp, double * humidity) {
-  int i = channelNumber - channelNumberDHT;
-  *temp = dht_sensor[i].readTemperature();
-  *humidity = dht_sensor[i].readHumidity();
 
-  //  static uint8_t error;
-  // Serial.print("get_temperature_and_humidity - "); Serial.print(channelNumber); Serial.print(" -- "); Serial.print(*temp); Serial.print(" -- "); Serial.println(*humidity);
-  if ( isnan(*temp) || isnan(*humidity) ) {
-    *temp = -275;
-    *humidity = -1;
-    //    error++;
+  if (nr_dht != 0) {
+    int i = channelNumber - channelNumberDHT;
+    *temp = dht_sensor[i].readTemperature();
+    *humidity = dht_sensor[i].readHumidity();
+
+    //  static uint8_t error;
+    // Serial.print("get_temperature_and_humidity - "); Serial.print(channelNumber); Serial.print(" -- "); Serial.print(*temp); Serial.print(" -- "); Serial.println(*humidity);
+    if ( isnan(*temp) || isnan(*humidity) ) {
+      *temp = -275;
+      *humidity = -1;
+      //    error++;
+    }
+    //THERMOSTAT
+    CheckTermostat(-1, *temp, *humidity);
+    //  Serial.print("error - "); Serial.println(error);
   }
-  //THERMOSTAT
-  CheckTermostat(-1, *temp, *humidity);
-  //  Serial.print("error - "); Serial.println(error);
 }
 
 double get_temperature(int channelNumber, double last_val) {
   double t = -275;
-
   int i = channelNumber - channelNumberDS18B20;
 
-  if ( i >= 0 ) {
+
+  if ( i >= 0 && nr_ds18b20 != 0) {
     if ( ds18b20[i].address == "FFFFFFFFFFFFFFFF" ) return -275;
     if ( millis() - ds18b20[i].lastTemperatureRequest < 0) {
       ds18b20[i].lastTemperatureRequest = millis();
@@ -691,7 +707,7 @@ void supla_led_set(int ledPin) {
 
 void supla_ds18b20_start(void) {
   if (MAX_DS18B20 > 0 ) {
-    Serial.println("DS18B2 init");
+    Serial.print("DS18B2 init: "); Serial.println(MAX_DS18B20);
     Serial.print("Parasite power is: ");
     if ( sensor[0].isParasitePowerMode() ) {
       Serial.println("ON");
@@ -712,14 +728,17 @@ void supla_ds18b20_start(void) {
           Serial.println("Nie znaleziono DSa");
         }
         }*/
-      sensor[i].setResolution(ds18b20[i].deviceAddress, TEMPERATURE_PRECISION);
+      if (ds18b20[i].deviceAddress) {
+        sensor[i].setResolution(ds18b20[i].deviceAddress, TEMPERATURE_PRECISION);
+      }
     }
   }
 }
 
 void supla_dht_start(void) {
   if (nr_dht > 0 ) {
-    for (int i = 0; i < MAX_DHT; i++) {
+    Serial.print("DHT init: "); Serial.println(nr_dht);
+    for (int i = 0; i < nr_dht; i++) {
       dht_sensor[i].begin();
     }
   }
@@ -755,6 +774,11 @@ void add_Relay_Invert(int relay) {
 
 void add_DHT11_Thermometer(int thermpin) {
   int channel = SuplaDevice.addDHT11();
+
+  if (nr_dht == 0) channelNumberDHT = channel;
+
+  dht_sensor = (DHT*)realloc(dht_sensor, sizeof(DHT) * (nr_dht + 1));
+
   dht_sensor[channel] = { thermpin, DHT11 };
   dht_channel[nr_dht] = channel;
   nr_dht++;
@@ -762,7 +786,10 @@ void add_DHT11_Thermometer(int thermpin) {
 
 void add_DHT22_Thermometer(int thermpin) {
   int channel = SuplaDevice.addDHT22();
-  channelNumberDHT = channel;
+  if (nr_dht == 0) channelNumberDHT = channel;
+
+  dht_sensor = (DHT*)realloc(dht_sensor, sizeof(DHT) * (nr_dht + 1));
+
   dht_sensor[nr_dht] = { thermpin, DHT22 };
   dht_channel[nr_dht] = channel;
   nr_dht++;
@@ -831,12 +858,14 @@ String GetAddressToString(DeviceAddress deviceAddress) {
 }
 
 void SetupDS18B20Multi() {
-  DeviceAddress devAddr[MAX_DS18B20];  //An array device temperature sensors
+  DeviceAddress devAddr[MAX_DS18B20_ARR];  //An array device temperature sensors
+  DeviceAddress tempSensor;
+
   //int numberOfDevices; //Number of temperature devices found
   //numberOfDevices = sensor[0].getDeviceCount();
   // Loop through each device, print out address
   for (int i = 0; i < MAX_DS18B20; i++) {
-    sensor[i].requestTemperatures();
+
     // Search the wire for address
     if ( sensor[i].getAddress(devAddr[i], i) ) {
       Serial.print("Found device ");
@@ -846,17 +875,18 @@ void SetupDS18B20Multi() {
       save_DS18b20_address(GetAddressToString(devAddr[i]), i);
       ds18b20[i].address = read_DS18b20_address(i);
     } else {
-      Serial.print("Not Found device");
-      Serial.print(i, DEC);
+      Serial.print("Not Found device ");
+      Serial.println(i, DEC);
       // save_DS18b20_address("", i);
     }
+    sensor[i].requestTemperatures();
     //Get resolution of DS18b20
     Serial.print("Resolution: ");
-    Serial.print(sensor[i].getResolution( devAddr[i] ));
+    Serial.print(sensor[i].getResolution(devAddr[i]));
     Serial.println();
 
     //Read temperature from DS18b20
-    float tempC = sensor[i].getTempC( devAddr[i] );
+    float tempC = sensor[i].getTempC(devAddr[i]);
     Serial.print("Temp C: ");
     Serial.println(tempC);
   }
@@ -883,7 +913,7 @@ void configBTN() {
         gui_color = GUI_GREEN;
         Modul_tryb_konfiguracji = 1;
         Tryb_konfiguracji();
-        client.stop();
+        //client.stop();
       } else if (config_state == LOW && Modul_tryb_konfiguracji == 1) {
         resetESP();
       }

@@ -17,12 +17,12 @@
 
 //DHT ****************************************************************************************************
 #define  DHTTYPE               DHT22
-#define  MAX_DHT               8
+#define  MAX_DHT               1
 
 //DS18B20 ************************************************************************************************
 
 extern uint8_t MAX_DS18B20; //maksymalnie 8
-#define MAX_DS18B20_ARR 8
+#define MAX_DS18B20_ARR 2
 #define  TEMPERATURE_PRECISION  10  // rozdzielczość czujnika DS 9 -12 bit
 //LED CONFIG *********************************************************************************************
 extern uint8_t LED_CONFIG_PIN;
@@ -66,18 +66,6 @@ extern double save_temp;
 
 #define CHOICE_TYPE  -1
 
-extern DallasTemperature sensor[];
-typedef struct {
-  int pin;
-  int channel;
-  String address;
-  int type; //0-single 1-multi
-  DeviceAddress deviceAddress;
-  long lastTemperatureRequest;
-  bool TemperatureRequestInProgress;
-
-} _ds18b20_t;
-extern _ds18b20_t ds18b20[];
 extern char GUID[];
 String read_rssi(void);
 void supla_led_blinking(int led, int time);

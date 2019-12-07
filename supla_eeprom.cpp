@@ -8,6 +8,7 @@
 
 #include "ESP8266TrueRandom.h"
 #include "supla_settings.h"
+#include "supla_board_settings.h"
 #include "supla_eeprom.h"
 
 char GUID[SUPLA_GUID_SIZE];
@@ -440,11 +441,15 @@ int read_supla_relay_state(int nr) {
 void save_DS18b20_address(String save, int nr) {
   if (nr <= MAX_DS18B20) {
     int start = 1 + MAX_SSID + MAX_PASSWORD + MAX_MLOGIN + MAX_MPASSWORD + MAX_SUPLA_SERVER + MAX_SUPLA_ID + MAX_SUPLA_PASS + MAX_HOSTNAME + (SUPLA_GUID_SIZE * 2) + MAX_BUTTON + MAX_RELAY +  MAX_RELAY_STATE + (MAX_DS18B20_EEPROM * nr);
+    int koniec = start + MAX_DS18B20_EEPROM;
     int len = save.length();
     if (len == 0) len = 16;
     EEPROM.begin(EEPROM_SIZE);
     for (int i = 0; i < len; ++i) {
       EEPROM.write(start + i, save[i]);
+    }
+    for (int i = start + len; i < koniec; ++i) {
+      EEPROM.write(i, 0);
     }
     EEPROM.end();
   }

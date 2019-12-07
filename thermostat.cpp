@@ -16,7 +16,17 @@ int relayStatus;
 
 void thermostat_start() {
 
-  MAX_DS18B20 = read_thermostat_max_ds();
+  PIN_THERMOSTAT = read_gpio(0);
+  PIN_THERMOMETR = read_gpio(1);
+  LED_CONFIG_PIN = read_gpio(2);
+  CONFIG_PIN = read_gpio(3);
+
+  int val_button_auto = read_gpio(4);
+  PIN_BUTTON_AUTO = (val_button_auto == 16 ? -1 : val_button_auto);
+
+  int val_button_manual = read_gpio(5);
+  PIN_BUTTON_MANUAL = (val_button_manual == 16 ? -1 : val_button_manual);
+
   thermostat.temp = read_thermostat_temp();
   save_temp = thermostat.temp;
   thermostat.hyst = read_thermostat_hyst();
@@ -25,6 +35,10 @@ void thermostat_start() {
   thermostat.channelDs18b20 = read_thermostat_channel();
   thermostat.type = read_thermostat_type();
   thermostat.invertRelay = read_invert_relay();
+
+  if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
+    MAX_DS18B20 = read_thermostat_max_ds();
+  }
 
   thermostat.channelAuto = 0;
   thermostat.channelManual = 1;
@@ -40,14 +54,14 @@ void thermostat_start() {
 
 void CheckTermostat(int channelNumber, double temp, double humidity) {
   if (thermostat.last_state_auto) {
-    if (channelNumber == thermostat.channelDs18b20 || thermostat.typeSensor == 1) {
-      if (thermostat.type == 0 ) {
+    if (channelNumber == thermostat.channelDs18b20 || thermostat.typeSensor == TYPE_SENSOR_DHT) {
+      if (thermostat.type == THERMOSTAT_WARMING ) {
         Serial.print("channel-"); Serial.print(channelNumber);
         CheckTermostatWarming(temp);
-      } else if (thermostat.type == 1) {
+      } else if (thermostat.type == THERMOSTAT_COOLLING) {
         Serial.print("channel-"); Serial.print(channelNumber);
         CheckTermostatCooling(temp);
-      } else if (thermostat.type == 2) {
+      } else if (thermostat.type == THERMOSTAT_HUMIDITY) {
         CheckTermostatHumidity(humidity);
       }
     }
@@ -142,7 +156,7 @@ bool thermostatON() {
 };
 
 void valueChangeTemp() {
-  if (thermostat.type == 2) {
+  if (thermostat.type == THERMOSTAT_HUMIDITY) {
     SuplaDevice.channelDoubleValueChanged(3, thermostat.humidity);
   } else {
     SuplaDevice.channelDoubleValueChanged(3, thermostat.temp);

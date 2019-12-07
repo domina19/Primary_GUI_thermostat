@@ -15,6 +15,18 @@ typedef struct {
 } _relay_button_channel;
 extern _relay_button_channel relay_button_channel[];
 
+extern DallasTemperature sensor[];
+typedef struct {
+  int pin;
+  int channel;
+  String address;
+  int type; //0-single 1-multi
+  DeviceAddress deviceAddress;
+  long lastTemperatureRequest;
+  bool TemperatureRequestInProgress;
+
+} _ds18b20_t;
+extern _ds18b20_t ds18b20[];
 void supla_board_configuration(void);
 
 

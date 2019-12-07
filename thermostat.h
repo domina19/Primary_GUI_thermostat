@@ -4,6 +4,13 @@
 #define THERMOSTAT_ON HIGH
 #define THERMOSTAT_OFF LOW
 
+#define TYPE_SENSOR_DS18B20  0
+#define TYPE_SENSOR_DHT      1
+
+#define THERMOSTAT_WARMING    0
+#define THERMOSTAT_COOLLING   1
+#define THERMOSTAT_HUMIDITY   2
+
 typedef struct {
   double temp;
   double hyst;

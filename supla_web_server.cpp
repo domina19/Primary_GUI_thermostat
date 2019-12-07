@@ -124,7 +124,7 @@ String supla_webpage_search(int save) {
     for (int i = 0; i < MAX_DS18B20; i++) {
       double temp = get_temperature(ds18b20[i].channel, 0);
 
-      content += "<i><input name='ds18b20_id_";
+      content += "<i><input name='ds18b20_";
       content += i;
       content += "' value='" + String(ds18b20[i].address.c_str()) + "' maxlength=";
       content += MAX_DS18B20_EEPROM;
@@ -142,27 +142,28 @@ String supla_webpage_search(int save) {
 
   DeviceAddress tempSensor;
   int numberOfDevices = 0; //Number of temperature devices found
+  content += "<form method='post' action='setup'>";
   content += "<div class='w'>";
   content += "<h3>Znalezione DS18b20</h3>";
-  numberOfDevices = sensor[0].getDeviceCount();
-  if (numberOfDevices != 0) {
-    for (int i = 0; i < MAX_DS18B20; i++) {
-      // Search the wire for address
-      if ( sensor[i].getAddress(tempSensor, i) ) {
-        content += "<i><input value='" + GetAddressToString(tempSensor) + "' length=";
-        content += MAX_DS18B20_EEPROM;
-        content += " readonly><label></i>";
-      }
+  for (int i = 0; i < MAX_DS18B20; i++) {
+    // Search the wire for address
+    if ( sensor[i].getAddress(tempSensor, i) ) {
+      content += "<i><input name='ds18b20_id_";
+      content += i;
+      content += "' value='" + GetAddressToString(tempSensor) + "' maxlength=";
+      content += MAX_DS18B20_EEPROM;
+      content += " readonly><label></i>";
+      numberOfDevices++;
     }
-  } else {
-    content += "<i><label>brak podłączonych czujników</label></i>";
   }
+  if (numberOfDevices == 0)
+    content += "<i><label>brak podłączonych czujników</label></i>";
+
   content += "</div>";
 
   content += "</center>";
-  content += "<form method='post' action='setup'>";
   content += "<button type='submit'>Zapisz znalezione DSy</button></form>";
-  content += "<br>";
+  content += "<br><br>";
   content += "<a href='/'><button>Powrót</button></a></div>";
   content += "<a target='_blank' rel='noopener noreferrer' href='https://forum.supla.org/viewtopic.php?f=11&t=5276'><span style='color: #ffffff !important;'>https://forum.supla.org/</span></a>";
   content += "<br><br>";
@@ -184,6 +185,8 @@ String supla_webpage_start(int save) {
     content += "<div id=\"msg\" class=\"c\">Restart modułu</div>";
   } else if (save == 3) {
     content += "<div id=\"msg\" class=\"c\">Dane wymazane - należy zrobić restart urządzenia!!!</div>";
+  } else if (save == 4) {
+    content += "<div id=\"msg\" class=\"c\">Tryb konfiguracyjny</div>";
   }
   content += "<script type='text/javascript'>setTimeout(function(){var element =  document.getElementById('msg');if ( element != null ) element.style.visibility = 'hidden';},3200);</script>";
   content += "<div class='s'>";
@@ -278,7 +281,7 @@ String supla_webpage_start(int save) {
   content += "<label>Hasło</label></i>";
   content += "</div>";
 
-  if (MAX_DS18B20 > 0 && thermostat.typeSensor == 0) {
+  if (MAX_DS18B20 > 0 && thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
     content += "<div class='w'>";
     content += "<h3>Temperatura</h3>";
     for (int i = 0; i < MAX_DS18B20; i++) {
@@ -305,7 +308,7 @@ String supla_webpage_start(int save) {
     }
     content += "</div>";
   }
-  if (thermostat.typeSensor == 1) {
+  if (thermostat.typeSensor == TYPE_SENSOR_DHT) {
     content += "<div class='w'>";
     content += "<h3>Temperatura i wilgotność</h3>";
     for (int i = 0; i < 1; i++) {
@@ -437,7 +440,7 @@ String supla_webpage_start(int save) {
       }
       content += "</select></i>";
 
-      if (thermostat.typeSensor == 0) {
+      if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
         content += "<i><label>MAX DS18b20</label><input name='thermostat_max_ds' type='number' placeholder='0' step='1' min='1' max='8' value='" + String(MAX_DS18B20) + "'></i>";
       }
       content += "</div>";
@@ -453,7 +456,7 @@ String supla_webpage_start(int save) {
       content += "</label><select name='thermostat_type'>";
 
       int pom = 3;
-      if (thermostat.typeSensor == 0) pom = 2;
+      if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) pom = 2;
 
       for (int suported_therm_type = 0; suported_therm_type < pom; suported_therm_type++) {
         content += "<option value='";
@@ -467,20 +470,20 @@ String supla_webpage_start(int save) {
       }
       content += "</select></i>";
     }
-    if (thermostat.type == 2) {
+    if (thermostat.type == THERMOSTAT_HUMIDITY) {
       content += "<i><label>Wilgotność</label><input name='thermostat_humidity' type='number' placeholder='0' step='1' min='0' max='99' value='" + String(thermostat.humidity) + "'></i>";
     } else {
       content += "<i><label>Temperatura ON</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
     }
     content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(thermostat.hyst) + "'></i>";
-    if (thermostat.typeSensor == 0) {
+    if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
       content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channelDs18b20) + "'></i>";
     }
     content += "</div>";
   }
   content += "<button type='submit'>Zapisz</button></form>";
   content += "<br>";
-  if ( thermostat.typeSensor == 0 ) {
+  if ( thermostat.typeSensor == TYPE_SENSOR_DS18B20 ) {
     content += "<a href='/search'><button>Szukaj DS</button></a>";
     content += "<br><br>";
   }
@@ -488,6 +491,9 @@ String supla_webpage_start(int save) {
   content += "<br><br>";
   content += "<form method='post' action='eeprom'>";
   content += "<button type='submit'>Wyczyść EEPROM</button></form>";
+  content += "<br>";
+  content += "<form method='post' action='konfiguracja'>";
+  content += "<button type='submit'>Tryb konfiguracji</button></form>";
   content += "<br>";
   content += "<form method='post' action='reboot'>";
   content += "<button type='submit'>Restart</button></form></div>";
@@ -526,7 +532,7 @@ void status_func(int status, const char *msg) {
   }
 
   static int lock;
-  if (status == 17) {
+  if (status == 17 && Modul_tryb_konfiguracji == 0) {
     supla_led_blinking_stop();
     valueChangeTemp();
     if (thermostat.last_state_auto == 0) supla_led_blinking(LED_CONFIG_PIN, 0);
