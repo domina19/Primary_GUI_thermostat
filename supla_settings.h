@@ -17,12 +17,12 @@
 
 //DHT ****************************************************************************************************
 #define  DHTTYPE               DHT22
-#define  MAX_DHT               1
+#define  MAX_DHT               8
 
 //DS18B20 ************************************************************************************************
 
 extern uint8_t MAX_DS18B20; //maksymalnie 8
-#define MAX_DS18B20_ARR 2
+#define MAX_DS18B20_ARR 8
 #define  TEMPERATURE_PRECISION  10  // rozdzielczość czujnika DS 9 -12 bit
 //LED CONFIG *********************************************************************************************
 extern uint8_t LED_CONFIG_PIN;

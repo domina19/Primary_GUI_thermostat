@@ -36,9 +36,7 @@ void thermostat_start() {
   thermostat.type = read_thermostat_type();
   thermostat.invertRelay = read_invert_relay();
 
-  if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
-    MAX_DS18B20 = read_thermostat_max_ds();
-  }
+  MAX_DS18B20 = read_thermostat_max_ds();
 
   thermostat.channelAuto = 0;
   thermostat.channelManual = 1;
@@ -72,7 +70,7 @@ void CheckTermostatWarming(double temp) {
   double pom;
   if (temp == -275) {
     thermostat.error++;
-    Serial.println("error");
+    Serial.println("->error");
     if (thermostat.error == 10) {
       thermostat.error = 0;
       thermostatOFF();

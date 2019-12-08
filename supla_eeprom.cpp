@@ -509,6 +509,10 @@ int read_gpio(int nr) {
     read_eeprom += char(EEPROM.read(i));
   }
   EEPROM.end();
+
+  if (read_eeprom == NULL) {
+    return -1;
+  }
   // read_eeprom = read_eeprom.c_str();
   return atoi(read_eeprom.c_str());
 }
