@@ -519,15 +519,30 @@ void Tryb_konfiguracji() {
   Serial.print("Tryb konfiguracji: ");
   Serial.println(Modul_tryb_konfiguracji);
 
-  WiFi.softAPdisconnect(true);
-  delay(1000);
-  WiFi.disconnect(true);
-  delay(1000);
-  WiFi.mode(WIFI_AP_STA);
-  delay(1000);
-  WiFi.softAP(Config_Wifi_name, Config_Wifi_pass);
-  delay(1000);
-  Serial.println("Tryb AP");
+  /*
+    WiFi.softAPdisconnect(true);
+    delay(1000);
+    WiFi.disconnect(true);
+    delay(1000);
+    WiFi.mode(WIFI_AP_STA);
+    delay(1000);
+    WiFi.softAP(Config_Wifi_name, Config_Wifi_pass);
+    delay(1000);
+    Serial.println("Tryb AP");
+  */
+  Serial.print("Creating Access Point");
+  Serial.print("Setting mode ... ");
+  Serial.println(WiFi.mode(WIFI_AP) ? "Ready" : "Failed!");
+
+  while (!WiFi.softAP(Config_Wifi_name, Config_Wifi_pass))
+  {
+    Serial.println(".");
+    delay(100);
+  }
+  Serial.println("Network Created!");
+  Serial.print("Soft-AP IP address = ");
+  Serial.println(WiFi.softAPIP());
+
   createWebServer();
   httpServer.begin();
   Serial.println("Start Serwera");
@@ -786,38 +801,34 @@ void add_Relay_Invert(int relay) {
 }
 
 void add_DHT11_Thermometer(int thermpin) {
-  if (Modul_tryb_konfiguracji == 0) {
-    int channel = SuplaDevice.addDHT11();
+  int channel = SuplaDevice.addDHT11();
 
-    if (nr_dht == 0) channelNumberDHT = channel;
-    dht_channel[nr_dht] = channel;
-  }
-  
+  if (nr_dht == 0) channelNumberDHT = channel;
+
   dht_sensor = (DHT*)realloc(dht_sensor, sizeof(DHT) * (nr_dht + 1));
+
   dht_sensor[nr_dht] = { thermpin, DHT11 };
+  dht_channel[nr_dht] = channel;
   nr_dht++;
 }
 
 void add_DHT22_Thermometer(int thermpin) {
-  if (Modul_tryb_konfiguracji == 0) {
-    int channel = SuplaDevice.addDHT22();
-    if (nr_dht == 0) channelNumberDHT = channel;
-    dht_channel[nr_dht] = channel;
-  }
+  int channel = SuplaDevice.addDHT22();
+  if (nr_dht == 0) channelNumberDHT = channel;
 
   dht_sensor = (DHT*)realloc(dht_sensor, sizeof(DHT) * (nr_dht + 1));
+
   dht_sensor[nr_dht] = { thermpin, DHT22 };
+  dht_channel[nr_dht] = channel;
   nr_dht++;
 }
 
 void add_DS18B20_Thermometer(int thermpin) {
-  if (Modul_tryb_konfiguracji == 0) {
-    int channel = SuplaDevice.addDS18B20Thermometer();
-    channelNumberDS18B20 = channel;
-    ds18b20[nr_ds18b20].channel = channel;
-  }
+  int channel = SuplaDevice.addDS18B20Thermometer();
+  channelNumberDS18B20 = channel;
   ds18x20[nr_ds18b20] = thermpin;
   ds18b20[nr_ds18b20].pin = thermpin;
+  ds18b20[nr_ds18b20].channel = channel;
   ds18b20[nr_ds18b20].type = 0;
   nr_ds18b20++;
 }
@@ -850,17 +861,17 @@ void add_Relay_Button_Invert(int relay, int button, int type) {
 
 void add_DS18B20Multi_Thermometer(int thermpin) {
   for (int i = 0; i < MAX_DS18B20; i++) {
-    if (Modul_tryb_konfiguracji == 0) {
-      int channel = SuplaDevice.addDS18B20Thermometer();
-      if (i == 0)channelNumberDS18B20 = channel;
-
-      ds18b20[nr_ds18b20].channel = channel;
+    int channel = SuplaDevice.addDS18B20Thermometer();
+    if (i == 0) {
+      channelNumberDS18B20 = channel;
     }
 
     ds18x20[nr_ds18b20] = thermpin;
     ds18b20[nr_ds18b20].pin = thermpin;
+    ds18b20[nr_ds18b20].channel = channel;
     ds18b20[nr_ds18b20].type = 1;
     ds18b20[nr_ds18b20].address = read_DS18b20_address(i).c_str();
+    ds18b20[i].lastTemperatureRequest = millis() + (nr_ds18b20 * 1000);
     nr_ds18b20++;
   }
 }

@@ -98,7 +98,7 @@ void CheckTermostatCooling(double temp) {
   double pom;
   if (temp == -275) {
     thermostat.error++;
-    Serial.println("error");
+    Serial.println("->error");
     if (thermostat.error == 10) {
       thermostat.error = 0;
       thermostatOFF();
