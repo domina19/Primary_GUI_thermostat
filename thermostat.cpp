@@ -27,16 +27,26 @@ void thermostat_start() {
   int val_button_manual = read_gpio(5);
   PIN_BUTTON_MANUAL = (val_button_manual == 16 ? -1 : val_button_manual);
 
-  thermostat.temp = read_thermostat_temp();
-  save_temp = thermostat.temp;
   thermostat.hyst = read_thermostat_hyst();
-  thermostat.humidity = read_thermostat_humidity();
   thermostat.typeSensor = read_type_sensor();
-  thermostat.channelDs18b20 = read_thermostat_channel();
   thermostat.type = read_thermostat_type();
   thermostat.invertRelay = read_invert_relay();
 
+  thermostat.humidity = read_thermostat_humidity();
+  thermostat.temp = read_thermostat_temp();
+  if (chackThermostatHumidity()) {
+    save_temp = thermostat.humidity;
+  } else {
+    save_temp = thermostat.temp;
+  }
+
   MAX_DS18B20 = read_thermostat_max_ds();
+
+  if (MAX_DS18B20 != 1) {
+    thermostat.channelDs18b20 = read_thermostat_channel();
+  } else {
+    thermostat.channelDs18b20 = 0;
+  }
 
   thermostat.channelAuto = 0;
   thermostat.channelManual = 1;
@@ -48,19 +58,30 @@ void thermostat_start() {
 
   thermostatOFF();
   pinMode(PIN_THERMOSTAT, OUTPUT);
+
+  if (thermostat.type == THERMOSTAT_PWM || thermostat.type == THERMOSTAT_PWM_HUMIDITY) {
+    analogWriteRange(100); // to have a range 1 - 100 for the fan
+    analogWriteFreq(10000);
+  }
 }
 
 void CheckTermostat(int channelNumber, double temp, double humidity) {
   if (thermostat.last_state_auto) {
     if (channelNumber == thermostat.channelDs18b20 || thermostat.typeSensor == TYPE_SENSOR_DHT) {
+
+      Serial.print("channel->"); Serial.print(channelNumber);
+
       if (thermostat.type == THERMOSTAT_WARMING ) {
-        Serial.print("channel-"); Serial.print(channelNumber);
         CheckTermostatWarming(temp);
+        //CheckTermostatWarming(temp);
       } else if (thermostat.type == THERMOSTAT_COOLLING) {
-        Serial.print("channel-"); Serial.print(channelNumber);
         CheckTermostatCooling(temp);
       } else if (thermostat.type == THERMOSTAT_HUMIDITY) {
         CheckTermostatHumidity(humidity);
+      } else if (thermostat.type == THERMOSTAT_PWM) {
+        CheckTermostatPWM(temp);
+      } else if (thermostat.type == THERMOSTAT_PWM_HUMIDITY) {
+        CheckTermostatHumidityPWM(humidity);
       }
     }
   }
@@ -124,7 +145,7 @@ void CheckTermostatCooling(double temp) {
 void CheckTermostatHumidity(double humidity) {
   double pom;
 
-  Serial.print("Wilgotność - pomiar "); Serial.println(humidity);
+  Serial.print("->Wilgotność - pomiar "); Serial.println(humidity);
   pom = thermostat.humidity - thermostat.hyst ;
 
   if ( relayStatus == 1 && humidity < pom ) {
@@ -139,24 +160,102 @@ void CheckTermostatHumidity(double humidity) {
   }
 }
 
+void CheckTermostatPWM(double temp) {
+  double pom;
+  int fanSpeedPercent;
+
+  if (temp == -275) {
+    thermostat.error++;
+    Serial.println("->error");
+    if (thermostat.error == 10) {
+      thermostat.error = 0;
+      fanSpeedPercent = 0;
+      controlFanSpeed(fanSpeedPercent);
+      //thermostatOFF();
+    }
+    return;
+  }
+  Serial.print("->Grzanie PWM-pomiar "); Serial.println(temp);
+
+  pom = thermostat.temp - thermostat.hyst ;
+
+  if (temp < pom) {
+    fanSpeedPercent = 100;
+    relayStatus = 1;
+  } else if ( temp >= pom && temp <= thermostat.temp) {
+    fanSpeedPercent = map(temp, thermostat.temp, pom, 10, 100);
+    relayStatus = 1;
+  } else if (temp > thermostat.temp) {
+    fanSpeedPercent = 0;
+    relayStatus = 0;
+  }
+  controlFanSpeed(fanSpeedPercent);
+}
+
+void CheckTermostatHumidityPWM(double humidity) {
+  double pom;
+  int fanSpeedPercent;
+
+  if (humidity == -1) {
+    thermostat.error++;
+    Serial.println("->error");
+    if (thermostat.error == 10) {
+      thermostat.error = 0;
+      fanSpeedPercent = 0;
+      controlFanSpeed(fanSpeedPercent);
+      //thermostatOFF();
+    }
+    return;
+  }
+  Serial.print("->Wilgotność PWM-pomiar "); Serial.println(humidity);
+
+  pom = thermostat.humidity - thermostat.hyst ;
+
+  if (humidity < pom ) {
+    fanSpeedPercent = 0;
+    relayStatus = 0;
+  } else if ( humidity >= pom && humidity <= thermostat.humidity ) {
+    fanSpeedPercent = map(humidity, pom, thermostat.humidity, 10, 100);
+    relayStatus = 1;
+  } else if (humidity > thermostat.humidity) {
+    fanSpeedPercent = 100;
+    relayStatus = 1;
+  }
+  controlFanSpeed(fanSpeedPercent);
+}
+
+void controlFanSpeed (int fanSpeedPercent) {
+  Serial.print("Fan Speed: ");
+  Serial.println(fanSpeedPercent);
+  analogWrite(PIN_THERMOSTAT, fanSpeedPercent); // set the fan speed
+}
+
 bool thermostatOFF() {
   relayStatus = 0;
-  //digitalWrite(PIN_THERMOSTAT, THERMOSTAT_OFF);
-  digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? HIGH : LOW);
   SuplaDevice.channelValueChanged(thermostat.channelSensor, 1);
+
+  if (!chackThermostatHumidity()) {
+    digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? HIGH : LOW);
+  }
 };
 
 bool thermostatON() {
   relayStatus = 1;
-  //digitalWrite(PIN_THERMOSTAT, THERMOSTAT_ON);
-  digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? LOW : HIGH);
   SuplaDevice.channelValueChanged(thermostat.channelSensor, 0);
+
+  if (!chackThermostatHumidity()) {
+    digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? LOW : HIGH);
+  }
 };
 
 void valueChangeTemp() {
-  if (thermostat.type == THERMOSTAT_HUMIDITY) {
+  if (chackThermostatHumidity()) {
     SuplaDevice.channelDoubleValueChanged(3, thermostat.humidity);
   } else {
     SuplaDevice.channelDoubleValueChanged(3, thermostat.temp);
   }
+}
+
+bool chackThermostatHumidity() {
+  return thermostat.type == THERMOSTAT_HUMIDITY || thermostat.type == THERMOSTAT_PWM_HUMIDITY;
 }

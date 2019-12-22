@@ -475,7 +475,7 @@ String read_DS18b20_address(int nr) {
         ii++;
       }
     }
-    memcpy(ds18b20[nr].deviceAddress, deviceAddress, sizeof(deviceAddress));
+    memcpy(ds18b20_channel[nr].deviceAddress, deviceAddress, sizeof(deviceAddress));
     EEPROM.end();
 
     if (read_eeprom == NULL) return "FFFFFFFFFFFFFFFF";

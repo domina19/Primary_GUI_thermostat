@@ -60,10 +60,12 @@ const char * Supported_Gpio[18] = {
   "BRAK"
 };
 
-const char * Supported_ThermostatType[4] = {
+const char * Supported_ThermostatType[5] = {
   "Grzanie",
   "Chłodzenie",
-  "Wilgotność"
+  "Wilgotność",
+  "Sterowanie wentylatorem PWM - Grzanie",
+  "Sterowanie wentylatorem PWM - Wilgotność"
 };
 
 const char * Supported_SensorType[3] = {
@@ -118,15 +120,15 @@ String supla_webpage_search(int save) {
   content += "<h1><center>" + String(read_supla_hostname().c_str()) + " by krycha</center></h1>";
   content += "<br>";
   content += "<center>";
-  if (MAX_DS18B20 > 0) {
+  if (nr_ds18b20 != 0) {
     content += "<div class='w'>";
     content += "<h3>Temperatura</h3>";
     for (int i = 0; i < MAX_DS18B20; i++) {
-      double temp = get_temperature(ds18b20[i].channel, 0);
+      double temp = get_temperature(ds18b20_channel[i].channel, 0);
 
       content += "<i><input name='ds18b20_";
       content += i;
-      content += "' value='" + String(ds18b20[i].address.c_str()) + "' maxlength=";
+      content += "' value='" + String(ds18b20_channel[i].address.c_str()) + "' maxlength=";
       content += MAX_DS18B20_EEPROM;
       content += " readonly><label>";
       if (temp != -275)content += temp;
@@ -134,7 +136,7 @@ String supla_webpage_search(int save) {
       content += " <b>&deg;C</b> ";
       content += "</label>";
       content += "<label style='left:80px'>GPIO: ";
-      content += String(ds18b20[i].pin);
+      content += String(ds18b20_channel[i].pin);
       content += "</label></i>";
     }
     content += "</div>";
@@ -281,15 +283,15 @@ String supla_webpage_start(int save) {
   content += "<label>Hasło</label></i>";
   content += "</div>";
 
-  if (MAX_DS18B20 > 0 && thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
+  if (nr_ds18b20 != 0 && thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
     content += "<div class='w'>";
     content += "<h3>Temperatura</h3>";
     for (int i = 0; i < MAX_DS18B20; i++) {
-      double temp = get_temperature(ds18b20[i].channel, 0);
-      if (ds18b20[i].type == 1) {
+      double temp = get_temperature(ds18b20_channel[i].channel, 0);
+      if (ds18b20_channel[i].type == 1) {
         content += "<i><input name='ds18b20_id_";
         content += i;
-        content += "' value='" + String(ds18b20[i].address.c_str()) + "' maxlength=";
+        content += "' value='" + String(ds18b20_channel[i].address.c_str()) + "' maxlength=";
         content += MAX_DS18B20_EEPROM;
         content += "><label>";
         if (temp != -275)content += temp;
@@ -298,7 +300,7 @@ String supla_webpage_start(int save) {
         content += "</label><label style='left:90px'>CH:";
         content += i;
         content += "</label></i>";
-      } else if (ds18b20[i].type == 0) {
+      } else if (ds18b20_channel[i].type == 0) {
         content += "<i><label>";
         if (temp != -275)content += temp;
         else content += "--.--";
@@ -455,28 +457,44 @@ String supla_webpage_start(int save) {
       content += "Rodzaj";
       content += "</label><select name='thermostat_type'>";
 
-      int pom = 3;
-      if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) pom = 2;
+      //int pom = 3;
+      //if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) pom = 2;
 
-      for (int suported_therm_type = 0; suported_therm_type < pom; suported_therm_type++) {
-        content += "<option value='";
-        content += suported_therm_type;
-        int select_relay = thermostat.type;
-        if (select_relay == suported_therm_type) {
-          content += "' selected>";
+      for (int suported_therm_type = 0; suported_therm_type < 5; suported_therm_type++) {
+        if (thermostat.typeSensor == TYPE_SENSOR_DS18B20 && suported_therm_type != 2 && suported_therm_type != 4) {
+
+          content += "<option value='";
+          content += suported_therm_type;
+
+          int select_type = thermostat.type;
+          if (select_type == suported_therm_type) {
+            content += "' selected>";
+          }
+          else content += "' >";
+          content += (Supported_ThermostatType[suported_therm_type]);
+
+        } else if (thermostat.typeSensor == TYPE_SENSOR_DHT) {
+          content += "<option value='";
+          content += suported_therm_type;
+
+          int select_type = thermostat.type;
+          if (select_type == suported_therm_type) {
+            content += "' selected>";
+          }
+          else content += "' >";
+          content += (Supported_ThermostatType[suported_therm_type]);
         }
-        else content += "' >";
-        content += (Supported_ThermostatType[suported_therm_type]);
+
       }
       content += "</select></i>";
     }
-    if (thermostat.type == THERMOSTAT_HUMIDITY) {
+    if (chackThermostatHumidity()) {
       content += "<i><label>Wilgotność</label><input name='thermostat_humidity' type='number' placeholder='0' step='1' min='0' max='99' value='" + String(thermostat.humidity) + "'></i>";
     } else {
-      content += "<i><label>Temperatura ON</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
+      content += "<i><label>Temperatura</label><input name='thermostat_temp' type='number' placeholder='20' step='0.1' min='-55' max='125' value='" + String(thermostat.temp) + "'></i>";
     }
     content += "<i><label>Histereza</label><input name='thermostat_hist' type='number' placeholder='0' step='0.1' min='0' max='10' value='" + String(thermostat.hyst) + "'></i>";
-    if (thermostat.typeSensor == TYPE_SENSOR_DS18B20) {
+    if (thermostat.typeSensor == TYPE_SENSOR_DS18B20 && nr_ds18b20 != 1) {
       content += "<i><label>Kanał DS18b20</label><input name='thermostat_channel' type='number' placeholder='0' step='1' min='0' max='10' value='" + String(thermostat.channelDs18b20) + "'></i>";
     }
     content += "</div>";
