@@ -67,6 +67,7 @@ void thermostat_start() {
 
 void CheckTermostat(int channelNumber, double temp, double humidity) {
   if (thermostat.last_state_auto) {
+    if (thermostat.typeSensor == TYPE_SENSOR_UNSET) return;
     if (channelNumber == thermostat.channelDs18b20 || thermostat.typeSensor == TYPE_SENSOR_DHT) {
 
       Serial.print("channel->"); Serial.print(channelNumber);
@@ -234,18 +235,16 @@ bool thermostatOFF() {
   relayStatus = 0;
   SuplaDevice.channelValueChanged(thermostat.channelSensor, 1);
 
-  if (!chackThermostatHumidity()) {
-    digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? HIGH : LOW);
-  }
+  digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? HIGH : LOW);
+
 };
 
 bool thermostatON() {
   relayStatus = 1;
   SuplaDevice.channelValueChanged(thermostat.channelSensor, 0);
 
-  if (!chackThermostatHumidity()) {
-    digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? LOW : HIGH);
-  }
+  digitalWrite(PIN_THERMOSTAT, thermostat.invertRelay ? LOW : HIGH);
+
 };
 
 void valueChangeTemp() {

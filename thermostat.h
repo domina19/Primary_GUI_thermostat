@@ -6,6 +6,7 @@
 
 #define TYPE_SENSOR_DS18B20  0
 #define TYPE_SENSOR_DHT      1
+#define TYPE_SENSOR_UNSET    2
 
 #define THERMOSTAT_WARMING      0
 #define THERMOSTAT_COOLLING     1

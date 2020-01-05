@@ -94,8 +94,6 @@ void setup() {
   Serial.begin(74880);
   EEPROM.begin(EEPROM_SIZE);
 
-  client.setTimeout(500);
-
   if ('2' == char(EEPROM.read(EEPROM_SIZE - 1))) {
     czyszczenieEeprom();
     first_start();
@@ -139,9 +137,6 @@ void setup() {
   }
   else gui_color = GUI_BLUE;
 
-  delay(5000);
-  drd.stop();
-
   //Pokaz_zawartosc_eeprom();
 
   Serial.println();
@@ -159,9 +154,8 @@ void loop() {
     httpServer.handleClient();
   }
 
-  // if (Modul_tryb_konfiguracji == 0) {
   SuplaDevice.iterate();
-  // }
+  drd.loop();
 
 }
 //*********************************************************************************************************
@@ -183,12 +177,7 @@ int supla_arduino_tcp_write(void *buf, int count) {
 }
 
 bool supla_arduino_svr_connect(const char *server, int port) {
-  if (WiFi.status() == WL_CONNECTED) {
-    WiFi_status();
-    return client.connect(server, 2015);
-  } else {
-    return false;
-  }
+  if (WiFi.status() == WL_CONNECTED) return client.connect(server, 2015); else return false;
 }
 
 bool supla_arduino_svr_connected(void) {
@@ -533,7 +522,7 @@ void Tryb_konfiguracji() {
 
   while (!WiFi.softAP(Config_Wifi_name, Config_Wifi_pass))
   {
-    Serial.println(".");
+    Serial.print(".");
     delay(100);
   }
   Serial.println("Network Created!");
@@ -565,9 +554,10 @@ void WiFi_up() {
     Serial.println("WiFi init ");
     if ( esid != 0 || epass != 0 ) {
       if (Modul_tryb_konfiguracji == 0) {
-        WiFi.mode(WIFI_STA);
+        Serial.println("Creating STA");
+        Serial.print("Setting mode ... ");
+        Serial.println(WiFi.mode(WIFI_STA) ? "Ready" : "Failed!");
         supla_led_blinking(LED_CONFIG_PIN, 500);
-        WiFi.disconnect(true);
       }
       Serial.print("SSID: ");
       Serial.println(esid);
@@ -582,20 +572,23 @@ void WiFi_up() {
   }
 }
 
-void WiFi_status() {
-  String esid = String(read_wifi_ssid().c_str());
-  Serial.print("WiFi connected SSID: ");
-  Serial.println(esid);
-  Serial.print("localIP: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("subnetMask: ");
-  Serial.println(WiFi.subnetMask());
-  Serial.print("gatewayIP: ");
-  Serial.println(WiFi.gatewayIP());
-  long rssi = WiFi.RSSI();
-  Serial.print("siła sygnału (RSSI): ");
-  Serial.print(rssi);
-  Serial.println(" dBm");
+void WiFiEvent(WiFiEvent_t event) {
+  switch (event) {
+    case WIFI_EVENT_STAMODE_GOT_IP:
+      Serial.print("localIP: ");
+      Serial.println(WiFi.localIP());
+      Serial.print("subnetMask: ");
+      Serial.println(WiFi.subnetMask());
+      Serial.print("gatewayIP: ");
+      Serial.println(WiFi.gatewayIP());
+      Serial.print("siła sygnału (RSSI): ");
+      Serial.print(WiFi.RSSI());
+      Serial.println(" dBm");
+      break;
+    case WIFI_EVENT_STAMODE_DISCONNECTED:
+      Serial.println("WiFi lost connection");
+      break;
+  }
 }
 
 void first_start(void) {
@@ -623,6 +616,8 @@ void first_start(void) {
 }
 
 void supla_start() {
+  client.setTimeout(500);
+
   read_guid();
   int Location_id = read_supla_id().toInt();
   strcpy(Supla_server, read_supla_server().c_str());
@@ -634,6 +629,10 @@ void supla_start() {
   String supla_hostname = read_supla_hostname().c_str();
   supla_hostname.replace(" ", "-");
   WiFi.hostname(supla_hostname);
+  WiFi.setAutoConnect(false);
+  WiFi.setPhyMode(WIFI_PHY_MODE_11B);
+  WiFi.setOutputPower(20.5);
+  WiFi.onEvent(WiFiEvent);
   // WiFi.setOutputPower(20.5);
 
   SuplaDevice.setName(read_supla_hostname().c_str());
