@@ -633,7 +633,6 @@ void supla_start() {
   WiFi.setPhyMode(WIFI_PHY_MODE_11B);
   WiFi.setOutputPower(20.5);
   WiFi.onEvent(WiFiEvent);
-  // WiFi.setOutputPower(20.5);
 
   SuplaDevice.setName(read_supla_hostname().c_str());
 
