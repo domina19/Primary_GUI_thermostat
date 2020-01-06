@@ -766,7 +766,7 @@ void add_Led_Config(int led) {
 }
 
 void add_Config(int pin) {
-  pinMode(pin, INPUT);
+  pinMode(pin, INPUT_PULLUP);
 }
 
 void add_Relay(int relay) {
