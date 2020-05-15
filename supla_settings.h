@@ -23,7 +23,9 @@
 
 extern uint8_t MAX_DS18B20; //maksymalnie 8
 #define MAX_DS18B20_ARR 8
-#define  TEMPERATURE_PRECISION  10  // rozdzielczość czujnika DS 9 -12 bit
+#define  TEMPERATURE_PRECISION  12  // rozdzielczość czujnika DS 9 -12 bit
+#define TEMPERATURE_NOT_AVAILABLE -275
+
 //LED CONFIG *********************************************************************************************
 extern uint8_t LED_CONFIG_PIN;
 //CONFIG PIN *********************************************************************************************

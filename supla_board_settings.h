@@ -20,11 +20,15 @@ typedef struct {
   int pin;
   int channel;
   String address;
+  String name;
   int type; //0-single 1-multi
   DeviceAddress deviceAddress;
-
-} _ds18b20_t;
-extern _ds18b20_t ds18b20_channel[];
+  double last_val;
+  unsigned long lastTemperatureRequest;
+  int8_t retryCounter;
+  bool iterationComplete;
+} _ds18b20_channel_t;
+extern _ds18b20_channel_t ds18b20_channel[];
 void supla_board_configuration(void);
 
 

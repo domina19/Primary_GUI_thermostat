@@ -81,8 +81,8 @@ int channelNumberDHT = 0;
 OneWire ds18x20[MAX_DS18B20_ARR] = 0;
 //const int oneWireCount = sizeof(ds18x20) / sizeof(OneWire);
 DallasTemperature sensor[MAX_DS18B20_ARR];
-_ds18b20_t ds18b20_channel[MAX_DS18B20_ARR];
-int channelNumberDS18B20 = 0;
+_ds18b20_channel_t ds18b20_channel[MAX_DS18B20_ARR];
+int ds18b20_channel_first = 0;
 
 //SUPLA ****************************************************************************************************
 
@@ -673,23 +673,50 @@ void get_temperature_and_humidity(int channelNumber, double * temp, double * hum
 }
 
 double get_temperature(int channelNumber, double last_val) {
-  double t = -275;
-  int i = channelNumber - channelNumberDS18B20;
+  int i = channelNumber - ds18b20_channel_first;
 
-  if ( i >= 0 && nr_ds18b20 != 0 && channelNumberDS18B20 != 0) {
-    if ( ds18b20_channel[i].address == "FFFFFFFFFFFFFFFF" ) return -275;
+  if ( i >= 0 ) {
+    if ( ds18b20_channel[i].address == "FFFFFFFFFFFFFFFF" ) return TEMPERATURE_NOT_AVAILABLE;
 
-    if ( i == 0) sensor[i].requestTemperatures();
+    if ( (ds18b20_channel[i].lastTemperatureRequest + 10000) <  millis() && ds18b20_channel[i].iterationComplete) {
+      sensor[i].requestTemperatures();
 
-    t = sensor[i].getTempC(ds18b20_channel[i].deviceAddress);
-    Serial.print("pomiarn"); Serial.println(i);
+      ds18b20_channel[i].iterationComplete = false;
+      ds18b20_channel[i].lastTemperatureRequest = millis();
+      //Serial.print("requestTemperatures: "); Serial.println(i);
+    }
 
-    if (t == -127) t = -275;
+    if ( ds18b20_channel[i].lastTemperatureRequest + 5000 <  millis()) {
+      double t = -275;
 
-    //THERMOSTAT
-    CheckTermostat(i, t, 0);
+      if (nr_ds18b20 == 1) {
+        t = sensor[0].getTempCByIndex(0);
+      } else {
+        t = sensor[i].getTempC(ds18b20_channel[i].deviceAddress);
+      }
+
+      if (t == DEVICE_DISCONNECTED_C || t == 85.0) {
+        t = TEMPERATURE_NOT_AVAILABLE;
+      }
+
+      if (t == TEMPERATURE_NOT_AVAILABLE) {
+        ds18b20_channel[i].retryCounter++;
+        if (ds18b20_channel[i].retryCounter > 3) {
+          ds18b20_channel[i].retryCounter = 0;
+        } else {
+          t = ds18b20_channel[i].last_val;
+        }
+      } else {
+        ds18b20_channel[i].retryCounter = 0;
+      }
+      CheckTermostat(i, t, 0);
+      ds18b20_channel[i].last_val = t;
+      ds18b20_channel[i].iterationComplete = true;
+
+      //Serial.print("getTempC: "); Serial.print(i); Serial.print(" temp: "); Serial.println(t);
+    }
   }
-  return t;
+  return ds18b20_channel[i].last_val;
 }
 
 void supla_led_blinking_func(void *timer_arg) {
@@ -717,33 +744,28 @@ void supla_led_set(int ledPin) {
 
 void supla_ds18b20_start(void) {
   if (nr_ds18b20 != 0 ) {
-    Serial.print("DS18B2 init: "); Serial.println(MAX_DS18B20);
+    Serial.print("DS18B2 init: "); Serial.println(nr_ds18b20);
     Serial.print("Parasite power is: ");
     if ( sensor[0].isParasitePowerMode() ) {
       Serial.println("ON");
     } else {
       Serial.println("OFF");
     }
-    for (int i = 0; i < MAX_DS18B20; i++) {
+    for (int i = 0; i < nr_ds18b20; i++) {
       sensor[i].setOneWire(&ds18x20[i]);
       sensor[i].begin();
 
-      if (ds18b20_channel[i].type == 0) {
-        DeviceAddress deviceAddress;
-        if (sensor[i].getAddress(deviceAddress, i)) {
-          ds18b20_channel[i].address = GetAddressToString(deviceAddress);
-          memcpy(ds18b20_channel[i].deviceAddress, deviceAddress, sizeof(deviceAddress));
-
-          Serial.print("Znaleziono DSa adres: "); Serial.println(ds18b20_channel[i].address);
-        } else {
-          ds18b20_channel[i].address = "FFFFFFFFFFFFFFFF";
-          Serial.println("Nie znaleziono DSa");
-        }
-
-      }
-      if (ds18b20_channel[i].deviceAddress) {
+      if (ds18b20_channel[i].type == 1) {
         sensor[i].setResolution(ds18b20_channel[i].deviceAddress, TEMPERATURE_PRECISION);
+      } else {
+        if (sensor[i].getAddress(ds18b20_channel[i].deviceAddress, 0)) sensor[i].setResolution(ds18b20_channel[i].deviceAddress, TEMPERATURE_PRECISION);
       }
+
+      sensor[i].setWaitForConversion(false);
+      sensor[i].requestTemperatures();
+
+      ds18b20_channel[i].iterationComplete = false;
+      ds18b20_channel[i].lastTemperatureRequest = -2500;
     }
   }
 }
@@ -808,16 +830,6 @@ void add_DHT22_Thermometer(int thermpin) {
   nr_dht++;
 }
 
-void add_DS18B20_Thermometer(int thermpin) {
-  int channel = SuplaDevice.addDS18B20Thermometer();
-  channelNumberDS18B20 = channel;
-  ds18x20[nr_ds18b20] = thermpin;
-  ds18b20_channel[nr_ds18b20].pin = thermpin;
-  ds18b20_channel[nr_ds18b20].channel = channel;
-  ds18b20_channel[nr_ds18b20].type = 0;
-  nr_ds18b20++;
-}
-
 void add_Relay_Button(int relay, int button, int type) {
   relay_button_channel[nr_relay].relay = relay;
   relay_button_channel[nr_relay].invert = 0;
@@ -844,18 +856,31 @@ void add_Relay_Button_Invert(int relay, int button, int type) {
   SuplaDevice.addRelayButton(relay, button, type, read_supla_relay_flag(nr_relay), true);
 }
 
+void add_DS18B20_Thermometer(int thermpin) {
+  int channel = SuplaDevice.addDS18B20Thermometer();
+  if (nr_ds18b20 == 0) ds18b20_channel_first = channel;
+
+  ds18x20[nr_ds18b20] = thermpin;
+  ds18b20_channel[nr_ds18b20].pin = thermpin;
+  ds18b20_channel[nr_ds18b20].channel = channel;
+  ds18b20_channel[nr_ds18b20].type = 0;
+  //ds18b20_channel[nr_ds18b20].name = String(read_DS18b20_name(nr_ds18b20).c_str());
+  ds18b20_channel[nr_ds18b20].last_val = -275;
+  nr_ds18b20++;
+}
+
 void add_DS18B20Multi_Thermometer(int thermpin) {
   for (int i = 0; i < MAX_DS18B20; i++) {
     int channel = SuplaDevice.addDS18B20Thermometer();
-    if (i == 0) {
-      channelNumberDS18B20 = channel;
-    }
+    if (i == 0) ds18b20_channel_first = channel;
 
     ds18x20[nr_ds18b20] = thermpin;
     ds18b20_channel[nr_ds18b20].pin = thermpin;
     ds18b20_channel[nr_ds18b20].channel = channel;
     ds18b20_channel[nr_ds18b20].type = 1;
+    //ds18b20_channel[nr_ds18b20].name = String(read_DS18b20_name(nr_ds18b20).c_str());
     ds18b20_channel[nr_ds18b20].address = read_DS18b20_address(i).c_str();
+    ds18b20_channel[nr_ds18b20].last_val = -275;
     nr_ds18b20++;
   }
 }
